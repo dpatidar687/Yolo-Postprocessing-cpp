@@ -12,15 +12,15 @@ set(ONNXRUNTIME_ROOTDIR "${CMAKE_CURRENT_SOURCE_DIR}/onnxruntime-linux-x64-1.12.
 
 
 # include_directories("${CMAKE_CURRENT_SOURCE_DIR}/onnxruntime-linux-x64-1.12.0/include")
-find_package(PythonInterp 3.8 EXACT REQUIRED COMPONENTS Development)
-find_package(PythonLibs 3.8 EXACT REQUIRED COMPONENTS Development)
+find_package(PythonInterp 3.10 EXACT REQUIRED COMPONENTS Development)
+find_package(PythonLibs 3.10 EXACT REQUIRED COMPONENTS Development)
 find_package(pybind11 CONFIG REQUIRED)
 find_package(OpenCV REQUIRED)
 # set(ONNXRUNTIME_ROOT "/home/manish/onnxruntime")
 # find_package(ONNXRuntime REQUIRED)
 
 
-set(Python_INCLUDE_DIRS "/usr/include/python3.8")
+set(Python_INCLUDE_DIRS "/usr/include/python3.10")
 include_directories(${OpenCV_INCLUDE_DIRS})
 include_directories(include)
 include_directories(${Python_INCLUDE_DIRS})
