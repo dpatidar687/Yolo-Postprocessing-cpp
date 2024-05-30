@@ -12,12 +12,6 @@ save_path = '/workspace/yolo_onnx_release/image/'
 image_path = "/workspace/yolo_onnx_release/image/image3.jpg"
 
 
-
-
-
-
-
-
 start_time =  time.time()
 batch_size = 1
 
@@ -32,21 +26,27 @@ confidence = 0.6
 
 
 obj.initialize(model_path, height, width, channels, number_of_classes,batch_size, confidence,  nms_threshold)
+def preporcessing(image):
+    full_image = cv2.imread(image_path)
+    image = cv2.cvtColor(full_image, cv2.COLOR_BGR2RGB)
+    image = cv2.resize(image, (width, height))
+    image = np.transpose(image, (2, 0, 1))
+    image = image/255.0
+    return image, full_image.shape[0], full_image.shape[1]
 
-# save_path = os.path.dirname(image_path)+'/output/'
-# print(save_path)
 
 
-for i in range(batch_size):
-    a = obj.detect(image_path)
-
-	# print(a)
+for i in range(batch_size):  
+    img, h, w = preporcessing(image_path)
+    flat_list = img.flatten().tolist()
+    
+    a = obj.detect( flat_list, h, w)
+    print(a)
+    
  
 time_single = (time.time() - start_time)/batch_size*1000
 print("time in single inference in ms ", time_single)
 print ("FPS ", 1000/time_single)
-
-exit()
 
 
 

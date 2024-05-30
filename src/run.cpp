@@ -47,7 +47,10 @@ void initialize(const std::string& model_path, int height, int width, int channe
         delete session_;
     }
 
-    std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector<float>> detect(std::string image_path);
+    std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector<float>> detect( 
+     std::vector<float>  input_tensor,
+     int input_image_width, int input_image_height);
+
     size_t vectorProduct(const std::vector<int64_t> &vector);
 
 
@@ -84,23 +87,46 @@ for (const auto &element : vector)
 return product;
 }
 
-std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector<float>> YoloDetectorv3::detect(std::string image_path){
+std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector<float>> YoloDetectorv3::detect(   
+   std::vector<float>  input_tensor,int input_image_width, int input_image_height){
 
-    cv::Mat image = cv::imread(image_path);
+    // cv::Mat image = cv::imread(image_path);
     const int batch_index = 0;
-  
-    int input_image_width = image.cols;
-    int input_image_height = image.rows;
+    // cout << "calling the detect fucntion "<< endl;
 
     Yolov3 y(number_of_classes, width);
     float *blob = new float[channels * height * width];
-    std::vector<int64_t> inputTensorShape{1, channels, height, width};
 
-    y.preprocessing(blob, image, batch_index);
+    
+    std::vector<int64_t> inputTensorShape{1, channels, height, width};
+    std::copy(input_tensor.begin(), input_tensor.end(), blob);
+
+    // y.preprocessing(blob, image, batch_index);
+
+    // float x = 0.0;
+    // float mag1 = 0.0;
+    // float mag2 = 0.0;
+    // for(int i = 0; i < input_tensor.size(); i++){
+
+    //     x += input_tensor[i]* blob[i];
+
+    //     mag1 += input_tensor[i]*input_tensor[i];
+    //     mag2 += blob[i] * blob[i];
+    // }
+    // mag1 = sqrt(mag1);
+    // mag2 = sqrt(mag2);
+
+    // x = x / (mag1 * mag2);
+    // cout << x << endl;
+
+
+
 
     size_t inputTensorSize = vectorProduct(inputTensorShape);
-
+    cout<< inputTensorSize << endl;
     std::vector<float> inputTensorValues(blob, blob + inputTensorSize);
+        
+    // std::cout<< "size of input tensor " << inputTensorValues.size() << endl;
 
     auto inputShape = session_->GetInputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
     auto outputShape1 = session_->GetOutputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
@@ -109,6 +135,8 @@ std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector
 
     std ::vector<float> inputValues = inputTensorValues;
     inputShape[0] = 1;
+
+    cout << inputValues.size() << endl;
 
     Ort::MemoryInfo memoryInfo = Ort::MemoryInfo::CreateCpu(
         OrtAllocatorType::OrtArenaAllocator, OrtMemType::OrtMemTypeDefault);
@@ -122,7 +150,9 @@ std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector
     std ::vector<std::string> outputNames2 = {output_name2_};
 
     static const char *output_names[] = {output_name1_, output_name2_};
-    // cout << sizeof(output_names) << "      " << sizeof(output_names[0]) << endl;
+
+    cout << sizeof(output_names) << "      " << sizeof(output_names[0]) << endl;
+
     static const size_t NUM_OUTPUTS = sizeof(output_names) / sizeof(output_names[0]);
 
     OrtValue *p_output_tensors[NUM_OUTPUTS] = {nullptr};
@@ -158,12 +188,12 @@ std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector
     std::vector<float> scores;
     std::vector<uint64_t> class_indices;
 
-
+    std::cout << vec1.size() << "    " << vec2.size() << endl;
 
     auto processed_result = y.postprocess(vectorOfVectors, confidence, number_of_classes, input_image_height, input_image_width, batch_index);
     std::tie(bboxes, scores, class_indices) = processed_result;
 
-    // std::cout << "size of boxes " << bboxes.size() << std::endl;
+    std::cout << "size of boxes " << bboxes.size() << std::endl;
 
 
     std::vector<uint64_t> after_nms_indices;
@@ -200,9 +230,9 @@ std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector
       //           << after_nms_scores[i] << " ," << after_nms_class_indices[i] << ")" << std::endl;
   }
     // y.show_boxes(image, after_nms_bboxes, after_nms_class_indices, after_nms_scores, save_path + filename);
-    y.draw_and_save(image, after_nms_bboxes, after_nms_class_indices, after_nms_scores, "/workspace/yolo_onnx_release/image/result.jpg");
+    // y.draw_and_save(image, after_nms_bboxes, after_nms_class_indices, after_nms_scores, "/workspace/yolo_onnx_release/image/result.jpg");
 
-  image.release();
+  // image.release();
     // std::cout << "adsd" << std::endl;
   delete[] blob;
     // delete[] rawOutput1;
@@ -276,9 +306,9 @@ void initialize(const std::string& model_path, int height, int width, int channe
         delete session_;
     }
 
-    std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector<float>> detect(std::string image_path);
+    std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector<float>> detect(   
+   std::vector<float>  input_tensor,int input_image_width, int input_image_height);
     size_t vectorProduct(const std::vector<int64_t> &vector);
-
 
     // Other member functions...
 
@@ -314,19 +344,20 @@ for (const auto &element : vector)
 return product;
 }
 
-std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector<float>> YoloDetectorv7::detect(std::string image_path){
-
-    cv::Mat image = cv::imread(image_path);
+std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector<float>> YoloDetectorv7::detect(   
+   std::vector<float>  input_tensor,int input_image_width, int input_image_height){
+    // cv::Mat image = cv::imread(image_path);
 
     int batch_index = 0;
-    int input_image_width = image.cols;
-    int input_image_height = image.rows;
+    // int input_image_width = image.cols;
+    // int input_image_height = image.rows;
 
     Yolov7 v7object(number_of_classes, width);
     float *blob = new float[channels * height * width];
     std::vector<int64_t> inputTensorShape{1, channels, height, width};
 
-    v7object.preprocessing(blob, image, batch_index);
+    // v7object.preprocessing(blob, image, batch_index);
+    std::copy(input_tensor.begin(), input_tensor.end(), blob);
 
     size_t inputTensorSize = vectorProduct(inputTensorShape);
 
@@ -457,9 +488,9 @@ std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector
       //           << after_nms_scores[i] << " ," << after_nms_class_indices[i] << ")" << std::endl;
   }
     // y.show_boxes(image, after_nms_bboxes, after_nms_class_indices, after_nms_scores, save_path + filename);
-    v7object.draw_and_save(image, after_nms_bboxes, after_nms_class_indices, after_nms_scores, "/workspace/yolo_onnx_release/image/result.jpg");
+    // v7object.draw_and_save(image, after_nms_bboxes, after_nms_class_indices, after_nms_scores, "/workspace/yolo_onnx_release/image/result.jpg");
 
-  image.release();
+  // image.release();
     // std::cout << "adsd" << std::endl;
   delete[] blob;
     // delete[] rawOutput1;
