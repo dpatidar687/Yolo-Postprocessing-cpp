@@ -7,8 +7,6 @@
 #include "onnxruntime_cxx_api.h"
 #include <yolov3.cpp>
 #include <yolov7.cpp>
-#include <array>
-#include <vector>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/pybind11.h>
@@ -25,7 +23,8 @@ public:
     YoloDetectorv3() : env_(ORT_LOGGING_LEVEL_WARNING, "test"), allocator_(Ort::AllocatorWithDefaultOptions()), session_(nullptr) {}
 
 
-void initialize(const std::string& model_path, int height, int width, int channels, int number_of_classes, int batch_size, float confidence, float nms_threshold) {
+void initialize(const std::string& model_path, int height, int width, int channels, int number_of_classes, int batch_size, float confidence, float nms_threshold, 
+    std::vector<std::vector<float>> anchors) {
     this->model_path_ = model_path;
     this->height = height;
     this->width = width;
@@ -34,6 +33,7 @@ void initialize(const std::string& model_path, int height, int width, int channe
     this->batch_size = batch_size;
     this->confidence = confidence;
     this->nms_threshold = nms_threshold;
+    this->anchors = anchors;
     
     std::cout << model_path << std::endl;
     session_ = new Ort::Session(env_, this->model_path_.c_str(), Ort::SessionOptions());
@@ -49,7 +49,7 @@ void initialize(const std::string& model_path, int height, int width, int channe
 
     std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector<float>> detect( 
      std::vector<float>  input_tensor,
-     int input_image_width, int input_image_height);
+     int input_image_height,  int input_image_width);
 
     size_t vectorProduct(const std::vector<int64_t> &vector);
 
@@ -71,6 +71,7 @@ private:
     int batch_size;
     float confidence;
     float nms_threshold;
+    std::vector<std::vector<float>> anchors;
 };
 
 
@@ -88,39 +89,18 @@ return product;
 }
 
 std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector<float>> YoloDetectorv3::detect(   
-   std::vector<float>  input_tensor,int input_image_width, int input_image_height){
+   std::vector<float>  input_tensor, int input_image_height, int input_image_width){
 
     // cv::Mat image = cv::imread(image_path);
     const int batch_index = 0;
     // cout << "calling the detect fucntion "<< endl;
 
-    Yolov3 y(number_of_classes, width);
+    Yolov3 y(number_of_classes, width, anchors);
     float *blob = new float[channels * height * width];
 
     
     std::vector<int64_t> inputTensorShape{1, channels, height, width};
     std::copy(input_tensor.begin(), input_tensor.end(), blob);
-
-    // y.preprocessing(blob, image, batch_index);
-
-    // float x = 0.0;
-    // float mag1 = 0.0;
-    // float mag2 = 0.0;
-    // for(int i = 0; i < input_tensor.size(); i++){
-
-    //     x += input_tensor[i]* blob[i];
-
-    //     mag1 += input_tensor[i]*input_tensor[i];
-    //     mag2 += blob[i] * blob[i];
-    // }
-    // mag1 = sqrt(mag1);
-    // mag2 = sqrt(mag2);
-
-    // x = x / (mag1 * mag2);
-    // cout << x << endl;
-
-
-
 
     size_t inputTensorSize = vectorProduct(inputTensorShape);
     cout<< inputTensorSize << endl;
@@ -214,30 +194,8 @@ std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector
       after_nms_class_indices.emplace_back(class_indices[idx]);
       after_nms_scores.emplace_back(scores[idx]);
   }
-    // cout<< "-----------------------------------------------------------------------------" << endl;
-    // cout << after_nms_bboxes.size() << "           " << after_nms_scores.size() << "               " << after_nms_class_indices.size() << endl;
-    // cout << save_path + filename << endl;
-    // cout << imagePath << endl;
-  for (int i = 0; i < after_nms_bboxes.size(); ++i)
-  {
-      const std::array<float, 4> &bbox = after_nms_bboxes[i];
-
-      float x1 = bbox[0];
-      float y1 = bbox[1];
-      float x2 = bbox[2];
-      float y2 = bbox[3];
-      // std::cout << "Bounding Box " << i << ": (" << int(x1) << ", " << int(y1) << ", " << int(x2) << ", " << int(y2) << " ,"
-      //           << after_nms_scores[i] << " ," << after_nms_class_indices[i] << ")" << std::endl;
-  }
-    // y.show_boxes(image, after_nms_bboxes, after_nms_class_indices, after_nms_scores, save_path + filename);
-    // y.draw_and_save(image, after_nms_bboxes, after_nms_class_indices, after_nms_scores, "/workspace/yolo_onnx_release/image/result.jpg");
-
-  // image.release();
-    // std::cout << "adsd" << std::endl;
+  
   delete[] blob;
-    // delete[] rawOutput1;
-    // delete[] rawOutput2;
-    // delete inputOnnxTensor;
 
   return std::make_tuple(after_nms_bboxes,after_nms_class_indices,after_nms_scores);
 }
@@ -251,7 +209,8 @@ public:
     YoloDetectorv7() : env_(ORT_LOGGING_LEVEL_WARNING, "test"), allocator_(Ort::AllocatorWithDefaultOptions()), session_(nullptr) {}
 
     
-void initialize(const std::string& model_path, int height, int width, int channels, int number_of_classes, int batch_size, float confidence, float nms_threshold) {
+void initialize(const std::string& model_path, int height, int width, int channels, int number_of_classes, int batch_size, 
+    float confidence, float nms_threshold, std::vector<std::vector<float>> anchors) {
     this->model_path_ = model_path;
     this->height = height;
     this->width = width;
@@ -260,7 +219,8 @@ void initialize(const std::string& model_path, int height, int width, int channe
     this->batch_size = batch_size;
     this->confidence = confidence;
     this->nms_threshold = nms_threshold;
-    
+    this->anchors = anchors;
+
     std::cout << model_path << std::endl;
 
 
@@ -307,7 +267,7 @@ void initialize(const std::string& model_path, int height, int width, int channe
     }
 
     std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector<float>> detect(   
-   std::vector<float>  input_tensor,int input_image_width, int input_image_height);
+   std::vector<float>  input_tensor,int input_image_height, int input_image_width);
     size_t vectorProduct(const std::vector<int64_t> &vector);
 
     // Other member functions...
@@ -328,6 +288,7 @@ private:
     int batch_size;
     float confidence;
     float nms_threshold;
+    std::vector<std::vector<float>> anchors;
 };
 
 
@@ -345,18 +306,16 @@ return product;
 }
 
 std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector<float>> YoloDetectorv7::detect(   
-   std::vector<float>  input_tensor,int input_image_width, int input_image_height){
-    // cv::Mat image = cv::imread(image_path);
-
+   std::vector<float>  input_tensor,int input_image_height, int input_image_width){
+    
     int batch_index = 0;
-    // int input_image_width = image.cols;
-    // int input_image_height = image.rows;
+    
 
-    Yolov7 v7object(number_of_classes, width);
+    Yolov7 v7object(number_of_classes, width, anchors);
     float *blob = new float[channels * height * width];
     std::vector<int64_t> inputTensorShape{1, channels, height, width};
 
-    // v7object.preprocessing(blob, image, batch_index);
+   
     std::copy(input_tensor.begin(), input_tensor.end(), blob);
 
     size_t inputTensorSize = vectorProduct(inputTensorShape);
@@ -407,6 +366,11 @@ std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector
         ii,
         &inputOnnxTensor, inputNames.size(), oo, 3);
 
+    auto numInputs = session_->GetInputCount();
+    auto numOutputs = session_->GetOutputCount();
+    cout<< numInputs << " " << numOutputs << endl;
+
+    
 
     auto *rawOutput1 = outputValues1[0].GetTensorMutableData<float>();
     std::vector<int64_t> out1 = outputValues1[0].GetTensorTypeAndShapeInfo().GetShape();
@@ -434,9 +398,9 @@ std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector
     // std::cout << arrSize1 << " " << arrSize2 << " " << arrSize3 << std::endl;
 
     std::vector<std::vector<float>> vectorOfVectors;
-    vectorOfVectors.push_back(vec1);
-    vectorOfVectors.push_back(vec2);
     vectorOfVectors.push_back(vec3);
+    vectorOfVectors.push_back(vec2);
+    vectorOfVectors.push_back(vec1);
 
     std::cout << vec1.size() << " " << vec2.size() << " " << vec3.size() << std::endl;
     std::cout << "size of vectorOfVectors " << vectorOfVectors.size() << std::endl;
@@ -446,7 +410,7 @@ std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector
     std::vector<float> scores;
     std::vector<uint64_t> class_indices;
 
-      std::cout<<number_of_classes<< " number of classes "<< input_image_height<<" " << batch_index << std::endl;
+      std::cout<<number_of_classes<< " number of classes "<< std::endl;
 
     auto processed_result = v7object.postprocess(vectorOfVectors, confidence, number_of_classes, input_image_height, input_image_width, batch_index);
     std::tie(bboxes, scores, class_indices) = processed_result;
@@ -476,26 +440,24 @@ std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector
     cout << after_nms_bboxes.size() << "           " << after_nms_scores.size() << "               " << after_nms_class_indices.size() << endl;
     // cout << save_path + filename << endl;
     // cout << imagePath << endl;
-  for (int i = 0; i < after_nms_bboxes.size(); ++i)
-  {
-      const std::array<float, 4> &bbox = after_nms_bboxes[i];
+  // for (int i = 0; i < after_nms_bboxes.size(); ++i)
+  // {
+  //     const std::array<float, 4> &bbox = after_nms_bboxes[i];
 
-      float x1 = bbox[0];
-      float y1 = bbox[1];
-      float x2 = bbox[2];
-      float y2 = bbox[3];
+  //     float x1 = bbox[0];
+  //     float y1 = bbox[1];
+  //     float x2 = bbox[2];
+  //     float y2 = bbox[3];
       // std::cout << "Bounding Box " << i << ": (" << int(x1) << ", " << int(y1) << ", " << int(x2) << ", " << int(y2) << " ,"
       //           << after_nms_scores[i] << " ," << after_nms_class_indices[i] << ")" << std::endl;
-  }
+  // }
     // y.show_boxes(image, after_nms_bboxes, after_nms_class_indices, after_nms_scores, save_path + filename);
     // v7object.draw_and_save(image, after_nms_bboxes, after_nms_class_indices, after_nms_scores, "/workspace/yolo_onnx_release/image/result.jpg");
 
   // image.release();
     // std::cout << "adsd" << std::endl;
   delete[] blob;
-    // delete[] rawOutput1;
-    // delete[] rawOutput2;
-    // delete inputOnnxTensor;
+    
 
   return std::make_tuple(after_nms_bboxes,after_nms_class_indices,after_nms_scores);
 }
