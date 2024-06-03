@@ -12,8 +12,8 @@ set(ONNXRUNTIME_ROOTDIR "${CMAKE_CURRENT_SOURCE_DIR}/onnxruntime-linux-x64-1.12.
 
 
 # include_directories("${CMAKE_CURRENT_SOURCE_DIR}/onnxruntime-linux-x64-1.12.0/include")
-find_package(PythonInterp 3.10 EXACT REQUIRED COMPONENTS Development)
-find_package(PythonLibs 3.10 EXACT REQUIRED COMPONENTS Development)
+find_package(PythonInterp 3.10.13 EXACT REQUIRED COMPONENTS Development)
+find_package(PythonLibs 3.10.13 EXACT REQUIRED COMPONENTS Development)
 find_package(pybind11 CONFIG REQUIRED)
 find_package(OpenCV REQUIRED)
 # set(ONNXRUNTIME_ROOT "/home/manish/onnxruntime")
@@ -22,7 +22,7 @@ find_package(OpenCV REQUIRED)
 
 set(Python_INCLUDE_DIRS "/usr/include/python3.10")
 include_directories(${OpenCV_INCLUDE_DIRS})
-include_directories(include)
+# include_directories(include)
 include_directories(${Python_INCLUDE_DIRS})
 include_directories("${ONNXRUNTIME_ROOTDIR}/include")
 
@@ -32,10 +32,13 @@ include_directories("${ONNXRUNTIME_ROOTDIR}/include")
 
 # add_executable(your_app1 src/main2.cpp)
 # target_link_libraries(your_app1 PUBLIC /home/manish/onnxruntime-linux-x64-1.17.1/lib/libonnxruntime.so ${OpenCV_LIBS} )
+file(GLOB SOURCE_FILES "src/*.cpp")
+file(GLOB HEADER_FILES "src/*.h")
 
-pybind11_add_module(run_yolo_onnx src/run.cpp)
+pybind11_add_module(run_yolo_onnx ${SOURCE_FILES} ${HEADER_FILES})
 # add_executable(run_yolo_onnx src/main3.cpp)
 target_link_libraries(run_yolo_onnx PRIVATE "${ONNXRUNTIME_ROOTDIR}/lib/libonnxruntime.so" ${OpenCV_LIBS} )
+target_include_directories(run_yolo_onnx PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 # python_add_library(your_app src/main.cpp)
 # add_executable(your_app src/main.cpp)
