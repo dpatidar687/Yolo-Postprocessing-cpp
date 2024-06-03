@@ -21,6 +21,7 @@ batch_size = 1
 batch_size = 1
 batch_index = 0
 channels = 3
+img_size = 416
 height = 416
 width = 416
 nms_threshold = 0.45
@@ -32,17 +33,25 @@ anchors = [[81, 82, 135, 169, 344, 319],
         [10, 14, 23, 27, 37, 58]]
 
 model = 'yolov3'
-full_image = cv2.imread(image_path)
 
 detector = build.run_yolo_onnx.YoloDetectorv3()
-v3_object = build.run_yolo_onnx.Yolov3(number_of_classes, height, anchors)
-
-detector.initialize(model_path, height, width, channels, number_of_classes,batch_size, confidence,  nms_threshold, anchors, model)
-
-x = v3_object.preprocess(image_path, height, width, channels, 0)
 
 
-list_of_boxes = detector.detect(x, full_image.shape[0], full_image.shape[1])
+v3_object = build.run_yolo_onnx.Yolov3(number_of_classes,img_size, anchors)
+
+detector.initialize(model_path, height, width, channels)
+
+x = v3_object.preprocess(image_path, batch_index)
+
+vectors_of_vectors = detector.detect(x)
+
+
+full_image = cv2.imread(image_path)
+input_image_height = full_image.shape[0]
+input_image_width = full_image.shape[1]
+
+list_of_boxes = v3_object.postprocess(vectors_of_vectors, confidence , nms_threshold , number_of_classes, input_image_height , input_image_width , batch_index)
+
 
 
 boxes = list_of_boxes[0]

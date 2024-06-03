@@ -1,24 +1,5 @@
-#include <iostream>
-using namespace std;
-#include <iostream>
-#include <vector>
 
-// #include <onnxruntime/core/providers/cpu/cpu_provider_factory.h>
-// #include "onnxruntime/core/session/onnxruntime_cxx_api.h"
-
-#include "opencv2/imgproc/imgproc.hpp"
-#include "opencv2/highgui/highgui.hpp"
-
-#include <opencv2/opencv.hpp>
-#include <iostream>
-#include <vector>
-#include <random>
 #include <yolov3.h>
-// #include "onnxruntime/core/providers/cpu/cpu_provider_factory.h"
-// #include "onnxruntime/core/session/onnxruntime_cxx_api.h"
-
-#include <stdio.h>
-#include <iostream>
 
 namespace
 {
@@ -35,7 +16,7 @@ namespace
   }
 }
 
-Yolov3::Yolov3( int numClasses, int image_size, std::vector<std::vector<float>> anchors)
+Yolov3::Yolov3(int numClasses, int image_size, std::vector<std::vector<float>> anchors)
 {
   this->IMG_HEIGHT = image_size;
   this->IMG_WIDTH = image_size;
@@ -54,47 +35,41 @@ float Yolov3::sigmoid(float x) const
   return 1.0 / (1.0 + std::exp(-x));
 }
 
-std::vector<float>  Yolov3::preprocess(std::string img_path, int height, int width , int channel , size_t batch_index)
+std::vector<float> Yolov3::preprocess(std::string img_path, size_t batch_index)
+{
+  const cv::Mat &img = cv::imread(img_path);
+  cv::Mat img_resized;
+
+  std::vector<float> flat_list(IMG_CHANNEL * IMG_HEIGHT * IMG_WIDTH);
+
+  cv::resize(img, img_resized, cv::Size(IMG_WIDTH, IMG_HEIGHT));
+
+  cv::Mat img_normalized;
+  img_normalized = img_resized;
+  cv::Mat img_normalized_rgb;
+  cv::cvtColor(img_normalized, img_normalized_rgb, cv::COLOR_BGR2RGB);
+
+  const unsigned char *dst = img_normalized_rgb.data;
+
+  for (int i = 0; i < IMG_HEIGHT; ++i)
   {
-    const cv::Mat &img = cv::imread(img_path);
-
-    int IMG_WIDTH = width;
-    int IMG_HEIGHT = height;
-    int IMG_CHANNEL = channel;
-    cv::Mat img_resized;
-    // float *src = new float[channels * height * width];
-        // std::cout << "3333 RUN The ALGO "<< std::endl;
-        std::vector<float> flat_list(IMG_CHANNEL * IMG_HEIGHT * IMG_WIDTH);
-
-    cv::resize(img, img_resized, cv::Size(IMG_WIDTH, IMG_HEIGHT));
-
-    cv::Mat img_normalized;
-    img_normalized = img_resized;
-    cv::Mat img_normalized_rgb;
-    cv::cvtColor(img_normalized, img_normalized_rgb, cv::COLOR_BGR2RGB);
-
-    const unsigned char *dst = img_normalized_rgb.data;
-
-    for (int i = 0; i < IMG_HEIGHT; ++i)
+    for (int j = 0; j < IMG_WIDTH; ++j)
     {
-      for (int j = 0; j < IMG_WIDTH; ++j)
+      for (int c = 0; c < IMG_CHANNEL; ++c)
       {
-        for (int c = 0; c < IMG_CHANNEL; ++c)
-        {
-          flat_list[batch_index * IMG_CHANNEL * IMG_HEIGHT * IMG_WIDTH +
-              c * IMG_HEIGHT * IMG_WIDTH + i * IMG_WIDTH + j] =
-              ((dst[i * IMG_WIDTH * IMG_CHANNEL + j * IMG_CHANNEL + c] / 255.0f));
-        }
+        flat_list[batch_index * IMG_CHANNEL * IMG_HEIGHT * IMG_WIDTH +
+                  c * IMG_HEIGHT * IMG_WIDTH + i * IMG_WIDTH + j] =
+            ((dst[i * IMG_WIDTH * IMG_CHANNEL + j * IMG_CHANNEL + c] / 255.0f));
       }
     }
-    std::cout<< "using a preprocess of yolov3 class" << std::endl;
-    return flat_list;
+  }
+  std::cout << "using a preprocess of yolov3 class" << std::endl;
+  return flat_list;
 }
 
-std::tuple<std::vector<std::array<float, 4>>, std::vector<float>, std::vector<uint64_t>>
-
+std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector<float>>
 Yolov3::postprocess(const std::vector<std::vector<float>> &inferenceOutput,
-                    const float confidenceThresh, const uint16_t num_classes,
+                    const float confidenceThresh, const float nms_threshold, const uint16_t num_classes,
                     const int64_t input_image_height, const int64_t input_image_width,
                     const int64_t batch_ind)
 {
@@ -105,14 +80,33 @@ Yolov3::postprocess(const std::vector<std::vector<float>> &inferenceOutput,
   for (int i = 0; i < inferenceOutput.size(); i++)
   {
     // cout << NUM_ANCHORS[i] << endl;
-    cout << inferenceOutput[i].size() << endl;
+    // cout << inferenceOutput[i].size() << endl;
     this->post_process_feature_map(inferenceOutput[i].data(), confidenceThresh, num_classes,
                                    input_image_height, input_image_width, 32 / pow(2, i),
                                    this->ANCHORS[i], this->NUM_ANCHORS[i], bboxes, scores,
                                    classIndices, batch_ind);
   }
 
-  return std::make_tuple(bboxes, scores, classIndices);
+  std::vector<uint64_t> after_nms_indices;
+
+  after_nms_indices = nms(bboxes, scores, nms_threshold);
+
+  std::vector<std::array<float, 4>> after_nms_bboxes;
+  std::vector<uint64_t> after_nms_class_indices;
+  std::vector<float> after_nms_scores;
+
+  after_nms_bboxes.reserve(after_nms_indices.size());
+  after_nms_class_indices.reserve(after_nms_indices.size());
+  after_nms_scores.reserve(after_nms_indices.size());
+
+  for (const auto idx : after_nms_indices)
+  {
+    after_nms_bboxes.emplace_back(bboxes[idx]);
+    after_nms_class_indices.emplace_back(classIndices[idx]);
+    after_nms_scores.emplace_back(scores[idx]);
+  }
+
+  return std::make_tuple(after_nms_bboxes, after_nms_class_indices, after_nms_scores);
 }
 
 void Yolov3::post_process_feature_map(const float *out_feature_map, const float confidenceThresh,
@@ -132,8 +126,8 @@ void Yolov3::post_process_feature_map(const float *out_feature_map, const float 
   const int64_t num_boxes = feature_map_size * num_filters;
   float tmpScores[num_classes];
 
-  cout << "num_boxes is " << num_boxes << endl;
-  cout << feature_map_height << feature_map_width << endl;
+  // cout << "num_boxes is " << num_boxes << endl;
+  // cout << feature_map_height << feature_map_width << endl;
 
   std::vector<float> outputData(out_feature_map + b * num_boxes,
                                 out_feature_map + (b + 1) * num_boxes);
@@ -236,9 +230,9 @@ std::array<float, 4> Yolov3::post_process_box(const float &xt, const float &yt, 
 }
 
 std::vector<uint64_t> Yolov3::nms(const std::vector<std::array<float, 4>> &bboxes,
-                             const std::vector<float> &scores,
-                              float overlapThresh,
-                              uint64_t topK)
+                                  const std::vector<float> &scores,
+                                  float overlapThresh,
+                                  uint64_t topK)
 {
   // assert(bboxes.size() > 0);
   if (bboxes.size() == 0)

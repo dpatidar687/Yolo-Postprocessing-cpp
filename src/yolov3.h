@@ -36,13 +36,13 @@ public:
     Yolov3( int numClasses, int image_size, std::vector<std::vector<float>> anchors);
 
     //   void preprocess(cv::Mat& img, float* data);
-    std::vector<float>  preprocess(std::string img_path, int height, int width , int channel , size_t batch_index);
+    std::vector<float>  preprocess(std::string img_path, size_t batch_index);
     
     float sigmoid(float x) const;
 
-    std::tuple<std::vector<std::array<float, 4>>, std::vector<float>, std::vector<uint64_t>>
+std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector<float>>
             postprocess(const std::vector<std::vector<float>> &inferenceOutput,
-                const float confidenceThresh, const uint16_t num_classes,
+                const float confidenceThresh,const float nms_threshold, const uint16_t num_classes,
                 const int64_t input_image_height, const int64_t input_image_width,
                 const int64_t batch_ind);
 
@@ -63,5 +63,5 @@ public:
     std::vector<uint64_t> nms(const std::vector<std::array<float, 4>> &bboxes,           
                               const std::vector<float> &scores,                          
                               const float overlapThresh = 0.45,                          
-                              const uint64_t topK = std::numeric_limits<uint64_t>::max() );
+                               uint64_t topK = std::numeric_limits<uint64_t>::max() );
 };
