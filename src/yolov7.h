@@ -13,10 +13,19 @@ using namespace std;
 #include <iostream>
 #include <vector>
 #include <random>
-#include <cmath>
 // #include "onnxruntime/core/providers/cpu/cpu_provider_factory.h"
 // #include "onnxruntime/core/session/onnxruntime_cxx_api.h"
-
+#include <iostream>
+#include <vector>
+#include <array>
+#include <string>
+#include <opencv2/opencv.hpp>
+#include <cpu_provider_factory.h>
+#include "onnxruntime_cxx_api.h"
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <pybind11/numpy.h>
+namespace py = pybind11;
 #include <stdio.h>
 #include <iostream>
 
@@ -32,6 +41,23 @@ class Yolov7
     std::vector<int64_t> NUM_ANCHORS;
     bool use_letterbox = false; // whether to use letterbox while preprocessing and postproceesing
 
+
+    Ort::Env env_;
+    Ort::Session *session_;
+    Ort::AllocatorWithDefaultOptions allocator_;
+    std::string model_path_;
+    char const *input_name_;
+    char const *output_name1_;
+    char const *output_name2_;
+    char const *output_name3_;
+   
+    int number_of_classes;
+    int batch_size;
+    float confidence;
+    float nms_threshold;
+    std::string model;
+
+
 public:
     Yolov7(int batch_size, int image_size, std::vector<std::vector<float>> anchors);
 
@@ -39,6 +65,15 @@ public:
     float sigmoid(float x) const;
     
     std::vector<float>  preprocess(std::string img_path, size_t batch_index);
+
+    void initialize(const std::string &model_path, int height, int width, 
+        int channels, int batch_size);
+
+    size_t vectorProduct(const std::vector<int64_t> &vector);
+
+
+    std::vector<std::vector<float>> detect(std::vector<float> input_tensor);
+
 
     std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector<float>>postprocess(const std::vector<std::vector<float>> &inferenceOutput,
     const float confidenceThresh, const float nms_threshold, const uint16_t num_classes,

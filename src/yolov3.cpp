@@ -17,19 +17,19 @@ namespace
 }
 
 Yolov3::Yolov3(int batch_size, int image_size, std::vector<std::vector<float>> anchors)
-{
-  this->IMG_HEIGHT = image_size;
-  this->IMG_WIDTH = image_size;
-  this->IMG_CHANNEL = 3;
-  this->ANCHORS = anchors;
-  this->BATCH_SIZE = batch_size;
-  for (auto &anchor : this->ANCHORS)
+  {
+    this->IMG_HEIGHT = image_size;
+    this->IMG_WIDTH = image_size;
+    this->IMG_CHANNEL = 3;
+    this->ANCHORS = anchors;
+    this->BATCH_SIZE = batch_size;
+    for (auto &anchor : this->ANCHORS)
 
-    this->NUM_ANCHORS.push_back(anchor.size() / 2); // divide by 2 as it has width and height scales
+      this->NUM_ANCHORS.push_back(anchor.size() / 2); // divide by 2 as it has width and height scales
 
-  this->dst = new float[this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_WIDTH *
-                        this->IMG_HEIGHT]; // avoid allocating heap memory at every iteration
-}
+    this->dst = new float[this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_WIDTH *
+                          this->IMG_HEIGHT]; // avoid allocating heap memory at every iteration
+  }
 
 float Yolov3::sigmoid(float x) const
 {
@@ -66,6 +66,108 @@ std::vector<float> Yolov3::preprocess(std::string img_path, size_t batch_index)
   }
   std::cout << "using a preprocess of yolov3 class" << std::endl;
   return flat_list;
+}
+void Yolov3::initialize(const std::string &model_path, int height, int width, 
+int channels, int batch_size)
+    {
+
+      // env_(ORT_LOGGING_LEVEL_WARNING, "test"), allocator_(Ort::AllocatorWithDefaultOptions()), session_(nullptr) {}
+
+        this->model_path_ = model_path;
+        this->IMG_HEIGHT = height;
+        this->IMG_WIDTH = width;
+        this->IMG_CHANNEL = channels;
+        this->BATCH_SIZE = batch_size;
+
+        std::cout << model_path << std::endl;
+        session_ = new Ort::Session(env_, this->model_path_.c_str(), Ort::SessionOptions());
+        input_name_ = session_->GetInputName(0, allocator_);
+        output_name1_ = session_->GetOutputName(0, allocator_);
+        output_name2_ = session_->GetOutputName(1, allocator_);
+        std::cout << "Created the session " << std::endl;
+    }
+size_t Yolov3::vectorProduct(const std::vector<int64_t> &vector)
+{
+    if (vector.empty())
+        return 0;
+
+    size_t product = 1;
+    for (const auto &element : vector)
+        product *= element;
+
+    return product;
+}
+
+std::vector<std::vector<float>> Yolov3::detect(
+    std::vector<float> input_tensor)
+{
+    float *blob = new float[this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_WIDTH * this->IMG_HEIGHT];
+
+    std::vector<int64_t> inputTensorShape{this->BATCH_SIZE, this->IMG_CHANNEL, this->IMG_HEIGHT, this->IMG_WIDTH};
+    std::copy(input_tensor.begin(), input_tensor.end(), blob);
+
+    size_t inputTensorSize = vectorProduct(inputTensorShape);
+    // cout << inputTensorSize << endl;
+    std::vector<float> inputTensorValues(blob, blob + inputTensorSize);
+
+    // std::cout<< "size of input tensor " << inputTensorValues.size() << endl;
+
+    auto inputShape = session_->GetInputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
+    auto outputShape1 = session_->GetOutputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
+    auto outputShape2 = session_->GetOutputTypeInfo(1).GetTensorTypeAndShapeInfo().GetShape();
+
+    std ::vector<float> inputValues = inputTensorValues;
+    inputShape[0] = 1;
+
+    // cout << inputValues.size() << endl;
+
+    Ort::MemoryInfo memoryInfo = Ort::MemoryInfo::CreateCpu(
+        OrtAllocatorType::OrtArenaAllocator, OrtMemType::OrtMemTypeDefault);
+
+    auto inputOnnxTensor = Ort::Value::CreateTensor<float>(memoryInfo,
+                                                           inputValues.data(), inputValues.size(),
+                                                           inputShape.data(), inputShape.size());
+
+    std ::vector<std::string> inputNames = {input_name_};
+    std ::vector<std::string> outputNames1 = {output_name1_};
+    std ::vector<std::string> outputNames2 = {output_name2_};
+
+    static const char *output_names[] = {output_name1_, output_name2_};
+
+    // cout << sizeof(output_names) << "      " << sizeof(output_names[0]) << endl;
+
+    static const size_t NUM_OUTPUTS = sizeof(output_names) / sizeof(output_names[0]);
+
+    OrtValue *p_output_tensors[NUM_OUTPUTS] = {nullptr};
+
+    char const *const *ii = &input_name_;
+    char const *const *names_of_outputs = output_names;
+    std ::vector<float> outputTensor;
+
+    auto outputValues1 = session_->Run(
+        Ort::RunOptions{nullptr},
+        ii,
+        &inputOnnxTensor, inputNames.size(), names_of_outputs, 2);
+
+    auto *rawOutput1 = outputValues1[0].GetTensorMutableData<float>();
+    std::vector<int64_t> out1 = outputValues1[0].GetTensorTypeAndShapeInfo().GetShape();
+    size_t count1 = outputValues1[0].GetTensorTypeAndShapeInfo().GetElementCount();
+
+    auto *rawOutput2 = outputValues1[1].GetTensorData<float>();
+    std::vector<int64_t> out2 = outputValues1[1].GetTensorTypeAndShapeInfo().GetShape();
+    size_t count2 = outputValues1[1].GetTensorTypeAndShapeInfo().GetElementCount();
+
+    int arrSize1 = count1 * sizeof(rawOutput1[0]);
+    std::vector<float> vec1(rawOutput1, rawOutput1 + count1);
+    int arrSize2 = sizeof(rawOutput2) / sizeof(rawOutput2[0]);
+    std::vector<float> vec2(rawOutput2, rawOutput2 + count2);
+
+    std::vector<std::vector<float>> vectorOfVectors;
+    vectorOfVectors.push_back(vec1);
+    vectorOfVectors.push_back(vec2);
+
+    // std::cout << vec1.size() << "    " << vec2.size() << endl;
+    return vectorOfVectors;
 }
 
 std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector<float>>

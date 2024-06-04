@@ -27,15 +27,15 @@ anchors = [[116, 90, 156, 198, 373, 326],
 
 model = 'yolov7'
 
-detector = build.run_yolo_onnx.YoloDetectorv7()
+# detector = build.run_yolo_onnx.YoloDetectorv7()
 
 v7object = build.run_yolo_onnx.Yolov7(batch_size,img_size, anchors)
 
-detector.initialize(model_path, height, width, channels, batch_size)
+v7object.initialize(model_path, height, width, channels, batch_size)
 
 flat_list = v7object.preprocess(image_path, batch_index)
 
-vectors_of_vectors = detector.detect(flat_list)
+vectors_of_vectors = v7object.detect(flat_list)
 
 
 full_image = cv2.imread(image_path)
