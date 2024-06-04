@@ -16,12 +16,13 @@ namespace
   }
 }
 
-Yolov3::Yolov3(int numClasses, int image_size, std::vector<std::vector<float>> anchors)
+Yolov3::Yolov3(int batch_size, int image_size, std::vector<std::vector<float>> anchors)
 {
   this->IMG_HEIGHT = image_size;
   this->IMG_WIDTH = image_size;
   this->IMG_CHANNEL = 3;
   this->ANCHORS = anchors;
+  this->BATCH_SIZE = batch_size;
   for (auto &anchor : this->ANCHORS)
 
     this->NUM_ANCHORS.push_back(anchor.size() / 2); // divide by 2 as it has width and height scales

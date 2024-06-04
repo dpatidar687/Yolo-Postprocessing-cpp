@@ -33,7 +33,7 @@ private:
     bool use_letterbox = false; // whether to use letterbox while preprocessing and postproceesing
 
 public:
-    Yolov3( int numClasses, int image_size, std::vector<std::vector<float>> anchors);
+    Yolov3( int batch_size, int image_size, std::vector<std::vector<float>> anchors);
 
     //   void preprocess(cv::Mat& img, float* data);
     std::vector<float>  preprocess(std::string img_path, size_t batch_index);

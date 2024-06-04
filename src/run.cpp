@@ -1,28 +1,14 @@
-#include <iostream>
-#include <vector>
-#include <array>
-#include <string>
-#include <opencv2/opencv.hpp>
-#include <cpu_provider_factory.h>
-#include "onnxruntime_cxx_api.h"
-// #include <yolov3.h>
-// #include <yolov7.h>
 #include <run.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h> // Include this header for automatic conversion of STL containers
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#include <pybind11/numpy.h>
 namespace py = pybind11;
 
-
-void YoloDetectorv3::initialize(const std::string &model_path, int height, int width, int channels)
+void YoloDetectorv3::initialize(const std::string &model_path, int height, int width, 
+int channels, int batch_size)
     {
         this->model_path_ = model_path;
         this->height = height;
         this->width = width;
         this->channels = channels;
+        this->batch_size = batch_size;
         std::cout << model_path << std::endl;
         session_ = new Ort::Session(env_, this->model_path_.c_str(), Ort::SessionOptions());
         input_name_ = session_->GetInputName(0, allocator_);
@@ -46,7 +32,7 @@ std::vector<std::vector<float>> YoloDetectorv3::detect(
 {
     float *blob = new float[channels * height * width];
 
-    std::vector<int64_t> inputTensorShape{1, channels, height, width};
+    std::vector<int64_t> inputTensorShape{batch_size, channels, height, width};
     std::copy(input_tensor.begin(), input_tensor.end(), blob);
 
     size_t inputTensorSize = vectorProduct(inputTensorShape);
@@ -118,12 +104,14 @@ std::vector<std::vector<float>> YoloDetectorv3::detect(
 
 
 
-void YoloDetectorv7::initialize(const std::string &model_path, int height, int width, int channels)
+void YoloDetectorv7::initialize(const std::string &model_path, int height, int width, 
+int channels, int batch_size)
     {
         this->model_path_ = model_path;
         this->height = height;
         this->width = width;
         this->channels = channels;
+        this->batch_size = batch_size;
 
         session_ = new Ort::Session(env_, this->model_path_.c_str(), Ort::SessionOptions());
         input_name_ = session_->GetInputName(0, allocator_);
@@ -191,10 +179,6 @@ std::vector<std::vector<float>> YoloDetectorv7::detect(std::vector<float> input_
     // std::cout << sizeof(output_names) << "      " << sizeof(output_names[0]) << sizeof(output_names[1]) << sizeof(output_names[2]) << std::endl;
 
     static const size_t NUM_OUTPUTS = sizeof(output_names) / sizeof(output_names[0]);
-
-    // std::cout << "Number of outputs: " << NUM_OUTPUTS << std::endl;
-
-    // std::cout << "Input shape: " << inputShape[0] << " " << inputShape[1] << " " << inputShape[2] << " " << inputShape[3] << endl;
 
     OrtValue *p_output_tensors[NUM_OUTPUTS] = {nullptr};
 

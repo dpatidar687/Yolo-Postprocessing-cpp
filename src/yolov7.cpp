@@ -1,24 +1,4 @@
-#include <iostream>
-using namespace std;
-#include <iostream>
-#include <vector>
-
-// #include <onnxruntime/core/providers/cpu/cpu_provider_factory.h>
-// #include "onnxruntime/core/session/onnxruntime_cxx_api.h"
-
-#include "opencv2/imgproc/imgproc.hpp"
-#include "opencv2/highgui/highgui.hpp"
-
-#include <opencv2/opencv.hpp>
-#include <iostream>
-#include <vector>
-#include <random>
 #include <yolov7.h>
-// #include "onnxruntime/core/providers/cpu/cpu_provider_factory.h"
-// #include "onnxruntime/core/session/onnxruntime_cxx_api.h"
-
-#include <stdio.h>
-#include <iostream>
 namespace
 {
   template <typename T>
@@ -34,13 +14,13 @@ namespace
   }
 }
 
-Yolov7::Yolov7(int numClasses, int image_size, std::vector<std::vector<float>> anchors)
+Yolov7::Yolov7(int batch_size, int image_size, std::vector<std::vector<float>> anchors)
 {
   this->IMG_HEIGHT = image_size;
   this->IMG_WIDTH = image_size;
   this->IMG_CHANNEL = 3;
   this->ANCHORS = anchors;
-
+  this->BATCH_SIZE = batch_size;
   for (auto &anchor : this->ANCHORS)
 
     this->NUM_ANCHORS.push_back(anchor.size() / 2); // divide by 2 as it has width and height scales

@@ -29,9 +29,9 @@ model = 'yolov7'
 
 detector = build.run_yolo_onnx.YoloDetectorv7()
 
-v7object = build.run_yolo_onnx.Yolov7(number_of_classes,img_size, anchors)
+v7object = build.run_yolo_onnx.Yolov7(batch_size,img_size, anchors)
 
-detector.initialize(model_path, height, width, channels)
+detector.initialize(model_path, height, width, channels, batch_size)
 
 flat_list = v7object.preprocess(image_path, batch_index)
 

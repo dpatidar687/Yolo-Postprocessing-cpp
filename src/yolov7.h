@@ -33,7 +33,7 @@ class Yolov7
     bool use_letterbox = false; // whether to use letterbox while preprocessing and postproceesing
 
 public:
-    Yolov7(int numClasses, int image_size, std::vector<std::vector<float>> anchors);
+    Yolov7(int batch_size, int image_size, std::vector<std::vector<float>> anchors);
 
 
     float sigmoid(float x) const;
