@@ -32,19 +32,14 @@ anchors = [[81, 82, 135, 169, 344, 319],
 
 model = 'yolov3'
 
-# detector = build.run_yolo_onnx.YoloDetectorv3()
-
 
 v3_object = build.run_yolo_onnx.Yolov3(number_of_classes,img_size, anchors)
 
 v3_object.initialize(model_path, height, width, channels, batch_size)
 
-flat_list = v3_object.preprocess(image_path, batch_index)
+img = cv2.imread(image_path)
 
-# print(type(flat_list))
-
-
-# print(flat_list[0])
+flat_list = v3_object.preprocess(img, batch_index)
 
 
 vectors_of_vectors = v3_object.detect(flat_list)

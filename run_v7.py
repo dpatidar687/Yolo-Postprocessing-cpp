@@ -20,20 +20,17 @@ nms_threshold = 0.45
 number_of_classes = 80
 confidence = 0.1  
 img_size = 640  
-model = 'yolov7'
 anchors = [[116, 90, 156, 198, 373, 326],
          [30, 61, 62, 45, 59, 119],
         [10, 13, 16, 30, 33, 23]]
 
-model = 'yolov7'
-
-# detector = build.run_yolo_onnx.YoloDetectorv7()
 
 v7object = build.run_yolo_onnx.Yolov7(batch_size,img_size, anchors)
 
 v7object.initialize(model_path, height, width, channels, batch_size)
 
-flat_list = v7object.preprocess(image_path, batch_index)
+img = cv2.imread(image_path)
+flat_list = v7object.preprocess(img, batch_index)
 
 vectors_of_vectors = v7object.detect(flat_list)
 

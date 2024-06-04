@@ -28,9 +28,19 @@ Yolov7::Yolov7(int batch_size, int image_size, std::vector<std::vector<float>> a
   this->dst = new float[this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_WIDTH *
                         this->IMG_HEIGHT]; // avoid allocating heap memory at every iteration
 }
-std::vector<float>  Yolov7::preprocess(std::string img_path, size_t batch_index)
-  {
-    const cv::Mat &img = cv::imread(img_path);
+cv::Mat  Yolov7::numpyArrayToMat(py::array_t<uchar> arr) {
+    auto buffer = arr.request();
+    int height = buffer.shape[0];
+    int width = buffer.shape[1];
+    int channels = buffer.shape[2];
+
+    cv::Mat mat(height, width, CV_8UC(channels), buffer.ptr);
+
+    return mat;
+}
+std::vector<float> Yolov7::preprocess(py::array_t<uchar> image_arr, size_t batch_index)
+{
+  cv::Mat img = numpyArrayToMat(image_arr);
   cv::Mat img_resized;
 
   std::vector<float> flat_list(IMG_CHANNEL * IMG_HEIGHT * IMG_WIDTH);
@@ -64,131 +74,127 @@ float Yolov7::sigmoid(float x) const
   return 1.0 / (1.0 + std::exp(-x));
 }
 
-void Yolov7::initialize(const std::string &model_path, int height, int width, 
-int channels, int batch_size)
-    {
-        this->model_path_ = model_path;
-        this->IMG_HEIGHT = height;
-        this->IMG_WIDTH = width;
-        this->IMG_CHANNEL = channels;
-        this->BATCH_SIZE = batch_size;
-        std::cout << model_path << std::endl;
+void Yolov7::initialize(const std::string &model_path, int height, int width,
+                        int channels, int batch_size)
+{
+  this->model_path_ = model_path;
+  this->IMG_HEIGHT = height;
+  this->IMG_WIDTH = width;
+  this->IMG_CHANNEL = channels;
+  this->BATCH_SIZE = batch_size;
+  std::cout << model_path << std::endl;
 
-        session_ = new Ort::Session(env_, this->model_path_.c_str(), Ort::SessionOptions());
-        input_name_ = session_->GetInputName(0, allocator_);
-        // std::cout << input_name_ << std::endl;
+  session_ = new Ort::Session(env_, this->model_path_.c_str(), Ort::SessionOptions());
+  input_name_ = session_->GetInputName(0, allocator_);
+  // std::cout << input_name_ << std::endl;
 
-        int numInputs = session_->GetInputCount();
-        int numOutputs = session_->GetOutputCount();
-       
+  int numInputs = session_->GetInputCount();
+  int numOutputs = session_->GetOutputCount();
 
-        output_name1_ = session_->GetOutputName(0, allocator_);
-        output_name2_ = session_->GetOutputName(1, allocator_);
-        output_name3_ = session_->GetOutputName(2, allocator_);
-    
-        std::cout << "Created the session " << std::endl;
-    }
+  output_name1_ = session_->GetOutputName(0, allocator_);
+  output_name2_ = session_->GetOutputName(1, allocator_);
+  output_name3_ = session_->GetOutputName(2, allocator_);
+
+  std::cout << "Created the session " << std::endl;
+}
 
 size_t Yolov7::vectorProduct(const std::vector<int64_t> &vector)
 {
-    if (vector.empty())
-        return 0;
+  if (vector.empty())
+    return 0;
 
-    size_t product = 1;
-    for (const auto &element : vector)
-        product *= element;
+  size_t product = 1;
+  for (const auto &element : vector)
+    product *= element;
 
-    return product;
+  return product;
 }
 
 std::vector<std::vector<float>> Yolov7::detect(std::vector<float> input_tensor)
 {
 
+  float *blob = new float[this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_WIDTH * this->IMG_HEIGHT];
+  std::vector<int64_t> inputTensorShape{this->BATCH_SIZE, this->IMG_CHANNEL, this->IMG_HEIGHT, this->IMG_WIDTH};
 
-   float *blob = new float[this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_WIDTH * this->IMG_HEIGHT];
-    std::vector<int64_t> inputTensorShape{this->BATCH_SIZE, this->IMG_CHANNEL, this->IMG_HEIGHT, this->IMG_WIDTH};
+  std::copy(input_tensor.begin(), input_tensor.end(), blob);
 
-    std::copy(input_tensor.begin(), input_tensor.end(), blob);
+  size_t inputTensorSize = vectorProduct(inputTensorShape);
 
-    size_t inputTensorSize = vectorProduct(inputTensorShape);
+  std::vector<float> inputTensorValues(blob, blob + inputTensorSize);
 
-    std::vector<float> inputTensorValues(blob, blob + inputTensorSize);
+  auto inputShape = session_->GetInputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
+  auto outputShape1 = session_->GetOutputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
+  auto outputShape2 = session_->GetOutputTypeInfo(1).GetTensorTypeAndShapeInfo().GetShape();
+  auto outputShape3 = session_->GetOutputTypeInfo(2).GetTensorTypeAndShapeInfo().GetShape();
 
-    auto inputShape = session_->GetInputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
-    auto outputShape1 = session_->GetOutputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
-    auto outputShape2 = session_->GetOutputTypeInfo(1).GetTensorTypeAndShapeInfo().GetShape();
-    auto outputShape3 = session_->GetOutputTypeInfo(2).GetTensorTypeAndShapeInfo().GetShape();
+  std ::vector<float> inputValues = inputTensorValues;
+  inputShape[0] = 1;
 
-    std ::vector<float> inputValues = inputTensorValues;
-    inputShape[0] = 1;
+  Ort::MemoryInfo memoryInfo = Ort::MemoryInfo::CreateCpu(
+      OrtAllocatorType::OrtArenaAllocator, OrtMemType::OrtMemTypeDefault);
 
-    Ort::MemoryInfo memoryInfo = Ort::MemoryInfo::CreateCpu(
-        OrtAllocatorType::OrtArenaAllocator, OrtMemType::OrtMemTypeDefault);
+  auto inputOnnxTensor = Ort::Value::CreateTensor<float>(memoryInfo,
+                                                         inputValues.data(), inputValues.size(),
+                                                         inputShape.data(), inputShape.size());
 
-    auto inputOnnxTensor = Ort::Value::CreateTensor<float>(memoryInfo,
-                                                           inputValues.data(), inputValues.size(),
-                                                           inputShape.data(), inputShape.size());
+  std ::vector<std::string> inputNames = {input_name_};
+  std ::vector<std::string> outputNames1 = {output_name1_};
+  std ::vector<std::string> outputNames2 = {output_name2_};
+  std ::vector<std::string> outputNames3 = {output_name3_};
 
-    std ::vector<std::string> inputNames = {input_name_};
-    std ::vector<std::string> outputNames1 = {output_name1_};
-    std ::vector<std::string> outputNames2 = {output_name2_};
-    std ::vector<std::string> outputNames3 = {output_name3_};
+  static const char *output_names[] = {output_name1_, output_name2_, output_name3_};
+  // std::cout << sizeof(output_names) << "      " << sizeof(output_names[0]) << sizeof(output_names[1]) << sizeof(output_names[2]) << std::endl;
 
-    static const char *output_names[] = {output_name1_, output_name2_, output_name3_};
-    // std::cout << sizeof(output_names) << "      " << sizeof(output_names[0]) << sizeof(output_names[1]) << sizeof(output_names[2]) << std::endl;
+  static const size_t NUM_OUTPUTS = sizeof(output_names) / sizeof(output_names[0]);
 
-    static const size_t NUM_OUTPUTS = sizeof(output_names) / sizeof(output_names[0]);
+  OrtValue *p_output_tensors[NUM_OUTPUTS] = {nullptr};
 
-    OrtValue *p_output_tensors[NUM_OUTPUTS] = {nullptr};
+  char const *const *ii = &input_name_;
+  char const *const *names_of_outputs = output_names;
+  std ::vector<float> outputTensor;
 
-    char const *const *ii = &input_name_;
-    char const *const *names_of_outputs = output_names;
-    std ::vector<float> outputTensor;
+  auto outputValues1 = session_->Run(
+      Ort::RunOptions{nullptr},
+      ii,
+      &inputOnnxTensor, inputNames.size(), names_of_outputs, 3);
 
-    auto outputValues1 = session_->Run(
-        Ort::RunOptions{nullptr},
-        ii,
-        &inputOnnxTensor, inputNames.size(), names_of_outputs, 3);
+  auto *rawOutput1 = outputValues1[0].GetTensorMutableData<float>();
+  std::vector<int64_t> out1 = outputValues1[0].GetTensorTypeAndShapeInfo().GetShape();
+  size_t count1 = outputValues1[0].GetTensorTypeAndShapeInfo().GetElementCount();
 
-    auto *rawOutput1 = outputValues1[0].GetTensorMutableData<float>();
-    std::vector<int64_t> out1 = outputValues1[0].GetTensorTypeAndShapeInfo().GetShape();
-    size_t count1 = outputValues1[0].GetTensorTypeAndShapeInfo().GetElementCount();
+  auto *rawOutput2 = outputValues1[1].GetTensorData<float>();
+  std::vector<int64_t> out2 = outputValues1[1].GetTensorTypeAndShapeInfo().GetShape();
+  size_t count2 = outputValues1[1].GetTensorTypeAndShapeInfo().GetElementCount();
 
-    auto *rawOutput2 = outputValues1[1].GetTensorData<float>();
-    std::vector<int64_t> out2 = outputValues1[1].GetTensorTypeAndShapeInfo().GetShape();
-    size_t count2 = outputValues1[1].GetTensorTypeAndShapeInfo().GetElementCount();
+  auto *rawOutput3 = outputValues1[2].GetTensorData<float>();
+  std::vector<int64_t> out3 = outputValues1[2].GetTensorTypeAndShapeInfo().GetShape();
+  size_t count3 = outputValues1[2].GetTensorTypeAndShapeInfo().GetElementCount();
 
-    auto *rawOutput3 = outputValues1[2].GetTensorData<float>();
-    std::vector<int64_t> out3 = outputValues1[2].GetTensorTypeAndShapeInfo().GetShape();
-    size_t count3 = outputValues1[2].GetTensorTypeAndShapeInfo().GetElementCount();
+  int arrSize1 = count1 * sizeof(rawOutput1[0]);
+  std::vector<float> vec1(rawOutput1, rawOutput1 + count1);
 
-    int arrSize1 = count1 * sizeof(rawOutput1[0]);
-    std::vector<float> vec1(rawOutput1, rawOutput1 + count1);
+  int arrSize2 = sizeof(rawOutput2) / sizeof(rawOutput2[0]);
+  std::vector<float> vec2(rawOutput2, rawOutput2 + count2);
 
-    int arrSize2 = sizeof(rawOutput2) / sizeof(rawOutput2[0]);
-    std::vector<float> vec2(rawOutput2, rawOutput2 + count2);
+  int arrSize3 = sizeof(rawOutput3) / sizeof(rawOutput3[0]);
+  std::vector<float> vec3(rawOutput3, rawOutput3 + count3);
 
-    int arrSize3 = sizeof(rawOutput3) / sizeof(rawOutput3[0]);
-    std::vector<float> vec3(rawOutput3, rawOutput3 + count3);
+  // std::cout << arrSize1 << " " << arrSize2 << " " << arrSize3 << std::endl;
 
-    // std::cout << arrSize1 << " " << arrSize2 << " " << arrSize3 << std::endl;
-
-    std::vector<std::vector<float>> vectorOfVectors;
-    vectorOfVectors.push_back(vec3);
-    vectorOfVectors.push_back(vec2);
-    vectorOfVectors.push_back(vec1);
-    return vectorOfVectors;
-
+  std::vector<std::vector<float>> vectorOfVectors;
+  vectorOfVectors.push_back(vec3);
+  vectorOfVectors.push_back(vec2);
+  vectorOfVectors.push_back(vec1);
+  return vectorOfVectors;
 }
 
-
-std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector<float>>Yolov7::postprocess(const std::vector<std::vector<float>> &inferenceOutput,
-    const float confidenceThresh, const float nms_threshold, const uint16_t num_classes,
-    const int64_t input_image_height, const int64_t input_image_width,
-    const int64_t batch_ind)
+std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector<float>> Yolov7::postprocess(const std::vector<std::vector<float>> &inferenceOutput,
+                                                                                                             const float confidenceThresh, const float nms_threshold, const uint16_t num_classes,
+                                                                                                             const int64_t input_image_height, const int64_t input_image_width,
+                                                                                                             const int64_t batch_ind)
 {
 
-  std::cout << "using a postprocess of yolov7 class" << std::endl;          
+  std::cout << "using a postprocess of yolov7 class" << std::endl;
   std::vector<std::array<float, 4>> bboxes;
   std::vector<float> scores;
   std::vector<uint64_t> classIndices;
@@ -198,12 +204,11 @@ std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector
 
     for (int i = 0; i < inferenceOutput.size(); i++)
     {
-      
+
       this->post_process_feature_map(inferenceOutput[i].data(), confidenceThresh, num_classes,
                                      input_image_height, input_image_width, 32 / pow(2, i),
                                      this->ANCHORS[i], this->NUM_ANCHORS[i], bboxes, scores,
                                      classIndices, batch_ind);
-                      
     }
   }
   else
@@ -211,26 +216,25 @@ std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector
     std::cout << "Output is not in three scales " << std::endl;
   }
 
+  std::vector<uint64_t> after_nms_indices;
 
-    std::vector<uint64_t> after_nms_indices;
+  after_nms_indices = nms(bboxes, scores, nms_threshold);
 
-    after_nms_indices = nms(bboxes, scores, nms_threshold);
+  std::vector<std::array<float, 4>> after_nms_bboxes;
+  std::vector<uint64_t> after_nms_class_indices;
+  std::vector<float> after_nms_scores;
 
-    std::vector<std::array<float, 4>> after_nms_bboxes;
-    std::vector<uint64_t> after_nms_class_indices;
-    std::vector<float> after_nms_scores;
+  after_nms_bboxes.reserve(after_nms_indices.size());
+  after_nms_class_indices.reserve(after_nms_indices.size());
+  after_nms_scores.reserve(after_nms_indices.size());
 
-    after_nms_bboxes.reserve(after_nms_indices.size());
-    after_nms_class_indices.reserve(after_nms_indices.size());
-    after_nms_scores.reserve(after_nms_indices.size());
-
-    for (const auto idx : after_nms_indices)
-    {
-        after_nms_bboxes.emplace_back(bboxes[idx]);
-        after_nms_class_indices.emplace_back(classIndices[idx]);
-        after_nms_scores.emplace_back(scores[idx]);
-    }
-    return std::make_tuple(after_nms_bboxes, after_nms_class_indices, after_nms_scores);
+  for (const auto idx : after_nms_indices)
+  {
+    after_nms_bboxes.emplace_back(bboxes[idx]);
+    after_nms_class_indices.emplace_back(classIndices[idx]);
+    after_nms_scores.emplace_back(scores[idx]);
+  }
+  return std::make_tuple(after_nms_bboxes, after_nms_class_indices, after_nms_scores);
 }
 
 void Yolov7::post_process_feature_map(const float *out_feature_map, const float confidenceThresh,
@@ -307,7 +311,6 @@ std::array<float, 4> Yolov7::post_process_box(const float &xt, const float &yt, 
   ymin = yt * input_image_height;
   xmax = xmin + (width * input_image_width);
   ymax = ymin + (height * input_image_height);
-
 
   xmin = std::max<float>(xmin, 0.0);
   ymin = std::max<float>(ymin, 0.0);
