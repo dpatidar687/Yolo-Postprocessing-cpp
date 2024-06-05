@@ -1,5 +1,6 @@
 
 #include <yolov3.h>
+#include <typeinfo>
 
 namespace
 {
@@ -49,11 +50,13 @@ cv::Mat Yolov3::numpyArrayToMat(py::array_t<uchar> arr) {
 std::vector<float> Yolov3::preprocess(py::array_t<uchar> image_arr, size_t batch_index)
 {
   // const cv::Mat &img = cv::imread(img_path);
+  auto start = std::chrono::system_clock::now();
+   
   cv::Mat img = numpyArrayToMat(image_arr);
 
   cv::Mat img_resized;
 
-  std::vector<float> flat_list(IMG_CHANNEL * IMG_HEIGHT * IMG_WIDTH);
+  // std::vector<float> flat_list(IMG_CHANNEL * IMG_HEIGHT * IMG_WIDTH);
 
   cv::resize(img, img_resized, cv::Size(IMG_WIDTH, IMG_HEIGHT));
 
@@ -62,7 +65,7 @@ std::vector<float> Yolov3::preprocess(py::array_t<uchar> image_arr, size_t batch
   cv::Mat img_normalized_rgb;
   cv::cvtColor(img_normalized, img_normalized_rgb, cv::COLOR_BGR2RGB);
 
-  const unsigned char *dst = img_normalized_rgb.data;
+  const unsigned char *src = img_normalized_rgb.data;
 
   for (int i = 0; i < IMG_HEIGHT; ++i)
   {
@@ -70,13 +73,20 @@ std::vector<float> Yolov3::preprocess(py::array_t<uchar> image_arr, size_t batch
     {
       for (int c = 0; c < IMG_CHANNEL; ++c)
       {
-        flat_list[batch_index * IMG_CHANNEL * IMG_HEIGHT * IMG_WIDTH +
+        this->dst[batch_index * IMG_CHANNEL * IMG_HEIGHT * IMG_WIDTH +
                   c * IMG_HEIGHT * IMG_WIDTH + i * IMG_WIDTH + j] =
-            ((dst[i * IMG_WIDTH * IMG_CHANNEL + j * IMG_CHANNEL + c] / 255.0f));
+            ((src[i * IMG_WIDTH * IMG_CHANNEL + j * IMG_CHANNEL + c] / 255.0f));
       }
     }
   }
   std::cout << "using a preprocess of yolov3 class" << std::endl;
+  std::vector<float> flat_list(this->dst, this->dst + this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_HEIGHT * this->IMG_WIDTH);
+
+   // Some computation here
+    auto end = std::chrono::system_clock::now();
+ 
+    std::chrono::duration<double> elapsed_seconds = end-start;
+    std::cout<< "time taken in cpp preprocessing "<<elapsed_seconds.count()<<"s"<<std::endl;
   return flat_list;
 }
 void Yolov3::initialize(const std::string &model_path, int height, int width,
@@ -89,10 +99,21 @@ void Yolov3::initialize(const std::string &model_path, int height, int width,
   this->BATCH_SIZE = batch_size;
 
   std::cout << model_path << std::endl;
-  session_ = new Ort::Session(env_, this->model_path_.c_str(), Ort::SessionOptions());
+  Ort::SessionOptions sessionOptions;
+  // Ort::CUDAExecutionProviderOptions cudaOptions(0); // Specify GPU device ID (0 for the first GPU)
+  // sessionOptions.AppendExecutionProvider_CUDA(cudaOptions);
+
+
+  // Ort::SessionOptions sessionOptions;
+  //   sessionOptions.AppendExecutionProvider_CUDA(); 
+
+
+  session_ = new Ort::Session(env_, this->model_path_.c_str(),sessionOptions);
+
   input_name_ = session_->GetInputName(0, allocator_);
   output_name1_ = session_->GetOutputName(0, allocator_);
   output_name2_ = session_->GetOutputName(1, allocator_);
+  inputShape = session_->GetInputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
   std::cout << "Created the session " << std::endl;
 }
 size_t Yolov3::vectorProduct(const std::vector<int64_t> &vector)
@@ -110,68 +131,50 @@ size_t Yolov3::vectorProduct(const std::vector<int64_t> &vector)
 std::vector<std::vector<float>> Yolov3::detect(
     std::vector<float> input_tensor)
 {
-  float *blob = new float[this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_WIDTH * this->IMG_HEIGHT];
-  std::vector<int64_t> inputTensorShape{this->BATCH_SIZE, this->IMG_CHANNEL, this->IMG_HEIGHT, this->IMG_WIDTH};
-  std::copy(input_tensor.begin(), input_tensor.end(), blob);
+  auto start = std::chrono::system_clock::now();
+    size_t inputTensorSize = this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_HEIGHT * this->IMG_WIDTH;
 
-  size_t inputTensorSize = vectorProduct(inputTensorShape);
-  std::vector<float> inputTensorValues(blob, blob + inputTensorSize);
+    std::vector<float> inputTensorValues(input_tensor.begin(), input_tensor.begin() + inputTensorSize);
+    
+    inputShape[0] = this->BATCH_SIZE;
 
-  auto inputShape = session_->GetInputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
-  auto outputShape1 = session_->GetOutputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
-  auto outputShape2 = session_->GetOutputTypeInfo(1).GetTensorTypeAndShapeInfo().GetShape();
-
-  std ::vector<float> inputValues = inputTensorValues;
-  inputShape[0] = this->BATCH_SIZE;
-
-  // cout << inputValues.size() << endl;
 
   Ort::MemoryInfo memoryInfo = Ort::MemoryInfo::CreateCpu(
       OrtAllocatorType::OrtArenaAllocator, OrtMemType::OrtMemTypeDefault);
 
   auto inputOnnxTensor = Ort::Value::CreateTensor<float>(memoryInfo,
-                                                         inputValues.data(), inputValues.size(),
-                                                         inputShape.data(), inputShape.size());
+                                                         inputTensorValues.data(), inputTensorValues.size(),
+                                                         this->inputShape.data(), this->inputShape.size());
 
   std ::vector<std::string> inputNames = {input_name_};
-  std ::vector<std::string> outputNames1 = {output_name1_};
-  std ::vector<std::string> outputNames2 = {output_name2_};
-
+ 
   static const char *output_names[] = {output_name1_, output_name2_};
-
-  // cout << sizeof(output_names) << "      " << sizeof(output_names[0]) << endl;
-
-  static const size_t NUM_OUTPUTS = sizeof(output_names) / sizeof(output_names[0]);
-
-  OrtValue *p_output_tensors[NUM_OUTPUTS] = {nullptr};
-
-  char const *const *ii = &input_name_;
+  char const *const *names_of_input = &input_name_;
   char const *const *names_of_outputs = output_names;
-  std ::vector<float> outputTensor;
 
-  auto outputValues1 = session_->Run(
-      Ort::RunOptions{nullptr},
-      ii,
+
+  auto outputValues = session_->Run(
+      Ort::RunOptions{},
+      names_of_input,
       &inputOnnxTensor, inputNames.size(), names_of_outputs, 2);
 
-  auto *rawOutput1 = outputValues1[0].GetTensorMutableData<float>();
-  std::vector<int64_t> out1 = outputValues1[0].GetTensorTypeAndShapeInfo().GetShape();
-  size_t count1 = outputValues1[0].GetTensorTypeAndShapeInfo().GetElementCount();
+  float* rawOutput1 = outputValues[0].GetTensorMutableData<float>();
+  size_t count1 = outputValues[0].GetTensorTypeAndShapeInfo().GetElementCount();
 
-  auto *rawOutput2 = outputValues1[1].GetTensorData<float>();
-  std::vector<int64_t> out2 = outputValues1[1].GetTensorTypeAndShapeInfo().GetShape();
-  size_t count2 = outputValues1[1].GetTensorTypeAndShapeInfo().GetElementCount();
+  float* rawOutput2 = outputValues[1].GetTensorMutableData<float>();
+  size_t count2 = outputValues[1].GetTensorTypeAndShapeInfo().GetElementCount();
 
-  int arrSize1 = count1 * sizeof(rawOutput1[0]);
-  std::vector<float> vec1(rawOutput1, rawOutput1 + count1);
-  int arrSize2 = sizeof(rawOutput2) / sizeof(rawOutput2[0]);
-  std::vector<float> vec2(rawOutput2, rawOutput2 + count2);
 
   std::vector<std::vector<float>> vectorOfVectors;
-  vectorOfVectors.push_back(vec1);
-  vectorOfVectors.push_back(vec2);
-
-  // std::cout << vec1.size() << "    " << vec2.size() << endl;
+  vectorOfVectors.reserve(outputValues.size());
+  vectorOfVectors.emplace_back(rawOutput1, rawOutput1+count1);
+  vectorOfVectors.emplace_back(rawOutput2, rawOutput2+count2);
+  auto end = std::chrono::system_clock::now();
+ 
+    std::chrono::duration<double> elapsed_seconds = end-start;
+        std::cout << "-------------------------------------------------------------------"
+                  << std::endl;
+    std::cout<< "time taken in cpp infer "<<elapsed_seconds.count()<<"s"<<std::endl;
   return vectorOfVectors;
 }
 
@@ -181,6 +184,8 @@ Yolov3::postprocess(const std::vector<std::vector<float>> &inferenceOutput,
                     const int64_t input_image_height, const int64_t input_image_width,
                     const int64_t batch_ind)
 {
+  auto start = std::chrono::system_clock::now();
+  
   std::vector<std::array<float, 4>> bboxes;
   std::vector<float> scores;
   std::vector<uint64_t> classIndices;
@@ -213,7 +218,11 @@ Yolov3::postprocess(const std::vector<std::vector<float>> &inferenceOutput,
     after_nms_class_indices.emplace_back(classIndices[idx]);
     after_nms_scores.emplace_back(scores[idx]);
   }
-
+  auto end = std::chrono::system_clock::now();
+ 
+    std::chrono::duration<double> elapsed_seconds = end-start;
+    std::cout << "-------------------------------------------------------------------"<<std::endl;
+    std::cout<< "time taken in cpp postprocessing "<<elapsed_seconds.count()<<"s"<<std::endl;
   return std::make_tuple(after_nms_bboxes, after_nms_class_indices, after_nms_scores);
 }
 

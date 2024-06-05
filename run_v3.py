@@ -16,7 +16,7 @@ image_path = "/workspace/yolo_onnx_release/image/61vMB3QmbWL._AC_UF894,1000_QL80
 
 
 start_time =  time.time()
-batch_size = 4
+batch_size = 1
 batch_index = 0
 channels = 3
 img_size = 416
@@ -34,21 +34,49 @@ model = 'yolov3'
 
 
 v3_object = build.run_yolo_onnx.Yolov3(number_of_classes,img_size, anchors)
-
 v3_object.initialize(model_path, height, width, channels, batch_size)
+init_time = time.time()
+print("time taken in initialization",start_time - init_time)
 
 img = cv2.imread(image_path)
 
+# preprocessing
+before_prepocess = time.time()
+
+# img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+# img = cv2.resize(img, (width, height))
+# img = img/255
+# img = np.transpose(img, (2, 0, 1))
+# flat_list = img.flatten().tolist()
+
+
 flat_list = v3_object.preprocess(img, batch_index)
+after_prepocess = time.time()
+print("overall preprocess time ", after_prepocess - before_prepocess)
 
-
+# Inference
+before_detect = time.time()
 vectors_of_vectors = v3_object.detect(flat_list)
+after_detect = time.time()
+print("overall inference time ", after_detect - before_detect)
+
+
 
 full_image = cv2.imread(image_path)
 input_image_height = full_image.shape[0]
 input_image_width = full_image.shape[1]
 
+
+# //post processing
+before_postprocess = time.time()
 list_of_boxes = v3_object.postprocess(vectors_of_vectors, confidence , nms_threshold , number_of_classes, input_image_height , input_image_width , batch_index)
+after_postprocess = time.time()
+print("overall postprocess time ", after_postprocess - before_postprocess)
+
+
+time_single = (time.time() - start_time)/batch_size*1000
+print("time in single inference in ms ", time_single)
+print ("FPS ", 1000/time_single)
 
 
 boxes = list_of_boxes[0]

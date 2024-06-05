@@ -2,7 +2,8 @@
 using namespace std;
 #include <iostream>
 #include <vector>
-
+#include <chrono>
+#include <ctime>
 // #include <onnxruntime/core/providers/cpu/cpu_provider_factory.h>
 // #include "onnxruntime/core/session/onnxruntime_cxx_api.h"
 
@@ -49,6 +50,7 @@ private:
     char const *input_name_;
     char const *output_name1_;
     char const *output_name2_;
+    std::vector<int64_t> inputShape;
 
     int number_of_classes;
     // int batch_size;

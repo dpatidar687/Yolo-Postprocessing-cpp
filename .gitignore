@@ -5,4 +5,5 @@ include/
 onnxruntime-linux-x64-1.12.0/
 image/
 models/
+onnxruntime/
 opencv/

@@ -20,7 +20,7 @@ PYBIND11_MODULE(run_yolo_onnx, m)
         .def("preprocess", &Yolov3::preprocess, py::return_value_policy::reference)
         .def("initialize", &Yolov3::initialize)
         .def("detect", &Yolov3::detect, py::return_value_policy::reference)
-        .def("postprocess", &Yolov3::postprocess);
+        .def("postprocess", &Yolov3::postprocess, py::return_value_policy::reference);
 
 
     py::class_<Yolov7>(m, "Yolov7")
@@ -28,6 +28,6 @@ PYBIND11_MODULE(run_yolo_onnx, m)
         .def("preprocess", &Yolov7::preprocess, py::return_value_policy::reference)
         .def("initialize", &Yolov7::initialize)
         .def("detect", &Yolov7:: detect, py::return_value_policy::reference) 
-        .def("postprocess", &Yolov7::postprocess);
+        .def("postprocess", &Yolov7::postprocess, py::return_value_policy::reference);
 
 }
