@@ -50,13 +50,23 @@ before_prepocess = time.time()
 # flat_list = img.flatten().tolist()
 
 
-flat_list = v3_object.preprocess(img, batch_index)
+v3_object.preprocess(img, batch_index)
+
+flat_list = v3_object.get_raw_data()
+
+# print(id(flat_list[0]))
+# print(type(flat_list.data))
+
+
+# print(type(flat_list))
 after_prepocess = time.time()
 print("overall preprocess time ", after_prepocess - before_prepocess)
 
 # Inference
 before_detect = time.time()
 vectors_of_vectors = v3_object.detect(flat_list)
+
+vectors_of_vectors = v3_object.get_inference_output()
 after_detect = time.time()
 print("overall inference time ", after_detect - before_detect)
 
@@ -91,9 +101,9 @@ for i in range(len(boxes)) :
     print(x1, y1, x2, y2, cls[i], score[i])
     cv2.rectangle(full_image, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0,0), 3)
 cv2.imwrite(save_path + 'output.jpg', full_image)
-time_single = (time.time() - start_time)/batch_size*1000
+time_single = (time.time() - start_time)/batch_size
 print("time in single inference in ms ", time_single)
-print ("FPS ", 1000/time_single)
+print ("FPS ", 1/time_single)
 
 exit()
 

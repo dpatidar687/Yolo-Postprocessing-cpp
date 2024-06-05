@@ -30,6 +30,26 @@ namespace py = pybind11;
 #include <stdio.h>
 #include <iostream>
 
+
+template <class T> class ptr_wrapper
+{
+    public:
+
+        ptr_wrapper() : ptr(nullptr) {}
+        ptr_wrapper(T* ptr) : ptr(ptr) {}
+        ptr_wrapper(const ptr_wrapper& other) : ptr(other.ptr) {}
+        T& operator* () const { return *ptr; }
+        T* operator->() const { return  ptr; }
+        T* get() const { return ptr; }
+        void destroy() { delete ptr; }
+        T& operator[](std::size_t idx) const { return ptr[idx]; }
+    private:
+        T* ptr;
+        size_t size;
+};
+
+
+
 class Yolov3
 {
 
@@ -52,6 +72,8 @@ private:
     char const *output_name2_;
     std::vector<int64_t> inputShape;
 
+    std::vector<std::vector<float>> inference_output;
+
     int number_of_classes;
     // int batch_size;
     float confidence;
@@ -64,7 +86,7 @@ public:
     Yolov3() : env_(ORT_LOGGING_LEVEL_WARNING, "test"), allocator_(Ort::AllocatorWithDefaultOptions()), session_(nullptr) {}
     Yolov3(int batch_size, int image_size, std::vector<std::vector<float>> anchors);
 
-    std::vector<float> preprocess(py::array_t<uchar> image_arr, size_t batch_index);
+    void preprocess(py::array_t<uchar> image_arr, size_t batch_index);
 
     void initialize(const std::string &model_path, int height, int width,
                     int channels, int batch_size);
@@ -73,10 +95,10 @@ public:
 
     float sigmoid(float x) const;
 
-    std::vector<std::vector<float>> detect(std::vector<float> input_tensor);
+    void detect(ptr_wrapper<float> input_tensor_ptr);
 
     std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector<float>>
-    postprocess(const std::vector<std::vector<float>> &inferenceOutput,
+    postprocess(const ptr_wrapper<std::vector<std::vector<float>>> &infered,
                 const float confidenceThresh, const float nms_threshold, const uint16_t num_classes,
                 const int64_t input_image_height, const int64_t input_image_width,
                 const int64_t batch_ind);
@@ -103,4 +125,8 @@ public:
         delete session_;
     };
     cv::Mat numpyArrayToMat(py::array_t<uchar> arr) ;
+
+
+    ptr_wrapper<float> get_raw_data(void) { return this->dst; }
+    ptr_wrapper<std::vector<std::vector<float>>> get_inference_output(void) { return &this->inference_output; }
 };
