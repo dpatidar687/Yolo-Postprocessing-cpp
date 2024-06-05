@@ -2,8 +2,9 @@ cmake_minimum_required(VERSION 3.0)
 set(CMAKE_CXX_STANDARD 17)
 project(your_app)
 
-
 set(ONNXRUNTIME_ROOTDIR "${CMAKE_CURRENT_SOURCE_DIR}/onnxruntime-linux-x64-1.12.0")
+
+#set(ONNXRUNTIME_ROOTDIR "${CMAKE_CURRENT_SOURCE_DIR}/libonnxruntime.so")
 # include_directories("${ONNXRUNTIME_ROOTDIR}/include"                           # Pre-built package
 #                     "${ONNXRUNTIME_ROOTDIR}/include/onnxruntime"               # Linux local install to /usr/local
 #                     "${ONNXRUNTIME_ROOTDIR}/include/onnxruntime/core/session") # Windows local install
@@ -11,20 +12,20 @@ set(ONNXRUNTIME_ROOTDIR "${CMAKE_CURRENT_SOURCE_DIR}/onnxruntime-linux-x64-1.12.
 # link_directories("${ONNXRUNTIME_ROOTDIR}/lib")
 
 
-# include_directories("${CMAKE_CURRENT_SOURCE_DIR}/onnxruntime-linux-x64-1.12.0/include")
-find_package(PythonInterp 3.10.13 EXACT REQUIRED COMPONENTS Development)
-find_package(PythonLibs 3.10.13 EXACT REQUIRED COMPONENTS Development)
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/onnxruntime-linux-x64-1.12.0/include")
+find_package(PythonInterp 3.8.10 EXACT REQUIRED COMPONENTS Development)
+find_package(PythonLibs 3.8.10 EXACT REQUIRED COMPONENTS Development)
 find_package(pybind11 CONFIG REQUIRED)
 find_package(OpenCV REQUIRED)
 # set(ONNXRUNTIME_ROOT "/home/manish/onnxruntime")
 # find_package(ONNXRuntime REQUIRED)
 
 
-set(Python_INCLUDE_DIRS "/usr/include/python3.10")
+set(Python_INCLUDE_DIRS "/usr/include/python3.8")
 include_directories(${OpenCV_INCLUDE_DIRS})
 # include_directories(include)
 include_directories(${Python_INCLUDE_DIRS})
-include_directories("${ONNXRUNTIME_ROOTDIR}/include")
+#include_directories(/usr/local/include/onnxruntime)
 
 # pybind11_add_module(your_app src/main.cpp)
 # target_link_libraries(your_app PUBLIC /home/manish/onnxruntime-linux-x64-1.12.0/lib/libonnxruntime.so ${OpenCV_LIBS} )
