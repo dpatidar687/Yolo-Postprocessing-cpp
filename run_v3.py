@@ -1,29 +1,29 @@
 
-
-
-import build.run_yolo_onnx
 import time
 import os
+import build.run_yolo_onnx
+
 import numpy as np
 import cv2
 import torch
 
 
-model_path = "/workspace/yolo_onnx_release/models/yolo_tiny_25_07.onnx"
-save_path = '/workspace/yolo_onnx_release/image/'
-image_path = "/workspace/yolo_onnx_release/image/61vMB3QmbWL._AC_UF894,1000_QL80_.jpg"
-
+# model_path = "/docker/deepak/models/yolo_tiny_25_07.onnx"
+model_path = "/docker/deepak/models/person_head_tinyv3.onnx"
+save_path = '/docker/deepak/yolo_onnx_release/image/'
+image_path = "/docker/deepak/image/61vMB3QmbWL._AC_UF894,1000_QL80_.jpg"
+video_path = "/docker/deepak/side _camera_office.mp4"
 
 
 start_time =  time.time()
-batch_size = 1
+batch_size = 32
 batch_index = 0
 channels = 3
-img_size = 416
-height = 416
-width = 416
+img_size = 640
+height = 640
+width = 640
 nms_threshold = 0.45
-number_of_classes = 1
+number_of_classes = 2
 confidence = 0.6
 
 
@@ -33,77 +33,77 @@ anchors = [[81, 82, 135, 169, 344, 319],
 model = 'yolov3'
 
 
-v3_object = build.run_yolo_onnx.Yolov3(number_of_classes,img_size, anchors)
-v3_object.initialize(model_path, height, width, channels, batch_size)
-init_time = time.time()
-print("time taken in initialization",start_time - init_time)
+v3_object = build.run_yolo_onnx.Yolov3(number_of_classes, anchors, model_path, height, width, channels, batch_size)
 
-img = cv2.imread(image_path)
+# full_image = cv2.imread(image_path)
+loop_start_time = time.time()
 
-# preprocessing
-before_prepocess = time.time()
+video = cv2.VideoCapture(video_path)
+cap = cv2.VideoCapture(video_path)
 
-# img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-# img = cv2.resize(img, (width, height))
-# img = img/255
-# img = np.transpose(img, (2, 0, 1))
-# flat_list = img.flatten().tolist()
+frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
+# Define the codec and create a VideoWriter object
+output_path = '/docker/deepak/output_video.mp4'  # Update with your output video file path
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Define the codec
+out = cv2.VideoWriter(output_path, fourcc, 25.0, (frame_width, frame_height))  # Adjust fps if needed
 
-v3_object.preprocess(img, batch_index)
+batch_list = []
 
-flat_list = v3_object.get_raw_data()
+while True:
+    
+    start_time_batch = time.time()
+    
+    
+    for j in range(batch_size):     
+        
+        ret, frame = cap.read()
+        if ret == False:
+            break
+        full_image = frame
+        batch_list.append(full_image)
+        batch_index = j
+        v3_object.preprocess(full_image, batch_index)
+        flat_list = v3_object.get_raw_data()
+    
+    
+    # print(type(flat_list))
+    # print(flat_list[0])  
+    # exit()  
+    feature_map_ptr = v3_object.detect(flat_list)
+    feature_map_ptr = v3_object.get_inference_output()
+   
+    for k in range(batch_size):
+        batch_index = k
+        full_image = batch_list[k]
+        list_of_boxes = v3_object.postprocess(feature_map_ptr, confidence , nms_threshold , number_of_classes, full_image.shape[0] , full_image.shape[1] , batch_index)
 
-# print(id(flat_list[0]))
-# print(type(flat_list.data))
+        boxes = list_of_boxes[0]
+        cls = list_of_boxes[1]
+        score = list_of_boxes[2]
 
+        for i in range(len(boxes)) :
+            x1 = boxes[i][0]
+            y1 = boxes[i][1]
+            x2 = boxes[i][2]
+            y2 = boxes[i][3]
+            print(x1, y1, x2, y2, cls[i], score[i])
+            cv2.rectangle(full_image, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0,0), 3)
+        # cv2.imwrite(save_path + 'output.jpg', full_image)
+        out.write(full_image)
+        
+    end_time_batch = time.time()
+    print("Batch_FPS ", batch_size/(end_time_batch - start_time_batch))
+    
+cap.release()
+out.release()
 
-# print(type(flat_list))
-after_prepocess = time.time()
-print("overall preprocess time ", after_prepocess - before_prepocess)
+loop_end_time = time.time()
+entire_time = (loop_end_time - loop_start_time)
+print("Entire time ", entire_time)
 
-# Inference
-before_detect = time.time()
-vectors_of_vectors = v3_object.detect(flat_list)
-
-vectors_of_vectors = v3_object.get_inference_output()
-after_detect = time.time()
-print("overall inference time ", after_detect - before_detect)
-
-
-
-full_image = cv2.imread(image_path)
-input_image_height = full_image.shape[0]
-input_image_width = full_image.shape[1]
-
-
-# //post processing
-before_postprocess = time.time()
-list_of_boxes = v3_object.postprocess(vectors_of_vectors, confidence , nms_threshold , number_of_classes, input_image_height , input_image_width , batch_index)
-after_postprocess = time.time()
-print("overall postprocess time ", after_postprocess - before_postprocess)
-
-
-time_single = (time.time() - start_time)/batch_size*1000
-print("time in single inference in ms ", time_single)
-print ("FPS ", 1000/time_single)
-
-
-boxes = list_of_boxes[0]
-cls = list_of_boxes[1]
-score = list_of_boxes[2]
-
-for i in range(len(boxes)) :
-    x1 = boxes[i][0]
-    y1 = boxes[i][1]
-    x2 = boxes[i][2]
-    y2 = boxes[i][3]
-    print(x1, y1, x2, y2, cls[i], score[i])
-    cv2.rectangle(full_image, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0,0), 3)
-cv2.imwrite(save_path + 'output.jpg', full_image)
-time_single = (time.time() - start_time)/batch_size
-print("time in single inference in ms ", time_single)
-print ("FPS ", 1/time_single)
+print("FPS ", 40/entire_time)
 
 exit()
 

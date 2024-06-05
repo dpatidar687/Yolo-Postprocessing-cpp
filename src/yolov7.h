@@ -3,8 +3,6 @@ using namespace std;
 #include <iostream>
 #include <vector>
 
-// #include <onnxruntime/core/providers/cpu/cpu_provider_factory.h>
-// #include "onnxruntime/core/session/onnxruntime_cxx_api.h"
 
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
@@ -13,8 +11,6 @@ using namespace std;
 #include <iostream>
 #include <vector>
 #include <random>
-// #include "onnxruntime/core/providers/cpu/cpu_provider_factory.h"
-// #include "onnxruntime/core/session/onnxruntime_cxx_api.h"
 #include <iostream>
 #include <vector>
 #include <array>
@@ -28,6 +24,7 @@ using namespace std;
 namespace py = pybind11;
 #include <stdio.h>
 #include <iostream>
+
 
 class Yolov7
 {
