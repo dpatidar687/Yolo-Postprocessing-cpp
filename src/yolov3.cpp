@@ -1,6 +1,6 @@
 
 #include <yolov3.h>
-#include <typeinfo>
+
 
 namespace
 {
@@ -17,58 +17,68 @@ namespace
   }
 }
 
-Yolov3::Yolov3(int number_of_classes, std::vector<std::vector<float> > anchors,
-               const std::string &model_path, int height, int width,
-               int channels, int batch_size)
+Yolov3::Yolov3(int number_of_classes, std::vector<std::vector<float> > anchors, const std::string &model_path, int batch_size, std::string provider)
 {
-  this->IMG_HEIGHT = height;
-  this->IMG_WIDTH = width;
-  this->IMG_CHANNEL = channels;
   this->ANCHORS = anchors;
   this->BATCH_SIZE = batch_size;
   this->model_path_ = model_path;
+  this->provider = provider;
+
 
   std::cout << model_path << std::endl;
+  std::string _name = "onnx_runtime" + std::to_string(rand());
+  this->env_ = Ort::Env(ORT_LOGGING_LEVEL_ERROR, _name.c_str());
+  this->sessionOptions.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_DISABLE_ALL);
+  this->sessionOptions.DisableMemPattern();
+  this->sessionOptions.DisableCpuMemArena();
+  this->sessionOptions.SetExecutionMode(ExecutionMode::ORT_PARALLEL);
+
+
+  if (provider == "cpu"){
+    std::cout << "Using CPU" << std::endl;
+    this->sessionOptions = Ort::SessionOptions();
+  }
+  else if (provider == "gpu"){
+    int gpu_id = 0;
+    std::cout << "Using GPU with ID: " << gpu_id << "" << std::endl;
+    OrtCUDAProviderOptions cuda_options{};
+    cuda_options.device_id = gpu_id;
+    cuda_options.cudnn_conv_algo_search = OrtCudnnConvAlgoSearchExhaustive;
+    this->sessionOptions.AppendExecutionProvider_CUDA(cuda_options);
+    this->sessionOptions.SetIntraOpNumThreads(1);
+    this->sessionOptions.SetInterOpNumThreads(6);
+  }
   
-  // Ort::CUDAExecutionProviderOptions cudaOptions(0); // Specify GPU device ID (0 for the first GPU)
-  // sessionOptions.AppendExecutionProvider_CUDA(cudaOptions);
+  this->session_ = new Ort::Session(env_, this->model_path_.c_str(), sessionOptions);
+  // this->memoryInfo = Ort::MemoryInfo::CreateCpu(OrtAllocatorType::OrtArenaAllocator, OrtMemType::OrtMemTypeDefault);
+    // this->info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
 
-  // Ort::SessionOptions sessionOptions;
-  //   sessionOptions.AppendExecutionProvider_CUDA();
+  this->input_count = session_->GetInputCount();
+  this->output_count = session_->GetOutputCount();
 
   
-  // OrtCUDAProviderOptions cuda_options{};
-  // cuda_options.device_id = 1;
-  // cuda_options.cudnn_conv_algo_search = OrtCudnnConvAlgoSearchExhaustive;
+  this-> input_name = session_->GetInputNameAllocated(0, allocator_).get();
+  this-> output_name1 = session_->GetOutputNameAllocated(0, allocator_).get();
+  this-> output_name2 = session_->GetOutputNameAllocated(1, allocator_).get();
+  this->inputShape = session_->GetInputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
+  std::cout << "Input shape: " << inputShape[0] << " " << inputShape[1] << " " << inputShape[2] << " " << inputShape[3] << std::endl;
+  this->IMG_HEIGHT = inputShape[2];
+  this->IMG_WIDTH = inputShape[3];
+  this->IMG_CHANNEL = inputShape[1];
+  this->BATCH_SIZE = batch_size;
+  this->inputShape[0] = batch_size;
+  this->inputTensorSize = this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_HEIGHT * this->IMG_WIDTH;
 
-  // this->sessionOptions.AppendExecutionProvider_CUDA(cuda_options);
-  // this->sessionOptions.SetIntraOpNumThreads(1);
-  // this->sessionOptions.SetInterOpNumThreads(6);
-
-  session_ = new Ort::Session(env_, this->model_path_.c_str(), sessionOptions);
-
-
-    this->input_count = session_->GetInputCount();
-    this->output_count = session_->GetOutputCount();
-
-   
-    this-> input_name = session_->GetInputNameAllocated(0, allocator_).get();
-    this-> output_name1 = session_->GetOutputNameAllocated(0, allocator_).get();
-    this-> output_name2 = session_->GetOutputNameAllocated(1, allocator_).get();
-    this->inputShape = session_->GetInputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
-    
-    std::cout<< input_name << std::endl;
-    std::cout<< output_name1 << std::endl;
-    std::cout<< output_name2 << std::endl;
-    std::cout << inputShape.size() << std::endl;
-    std::cout << "Created the session " << std::endl;
+  std::cout<< "Input name: " << input_name << std::endl;
+  std::cout<< "Output name1: " << output_name1 << std::endl;
+  std::cout<< "Output name2: " << output_name2 << std::endl;
+  std::cout << "Created the session " << std::endl;
 
   for (auto &anchor : this->ANCHORS)
-
-    this->NUM_ANCHORS.push_back(anchor.size() / 2); // divide by 2 as it has width and height scales
+    this->NUM_ANCHORS.push_back(anchor.size() / 2); 
 
   this->dst = new float[this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_WIDTH *
-                        this->IMG_HEIGHT]; // avoid allocating heap memory at every iteration
+                        this->IMG_HEIGHT]; 
 }
 
 float Yolov3::sigmoid(float x) const
@@ -114,23 +124,15 @@ void Yolov3::preprocess(py::array_t<uchar> image_arr, size_t batch_index)
       }
     }
   }
-
-  return;
 }
 
 void Yolov3::detect(
     ptr_wrapper<float> input_tensor_ptr)
 {
-  auto start = std::chrono::system_clock::now();
-  size_t inputTensorSize = this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_HEIGHT * this->IMG_WIDTH;
+  // Ort::MemoryInfo memoryInfo = Ort::MemoryInfo::CreateCpu(OrtAllocatorType::OrtArenaAllocator, OrtMemType::OrtMemTypeDefault);
 
-  inputShape[0] = this->BATCH_SIZE;
-
-  Ort::MemoryInfo memoryInfo = Ort::MemoryInfo::CreateCpu(
-      OrtAllocatorType::OrtArenaAllocator, OrtMemType::OrtMemTypeDefault);
-
-  auto inputOnnxTensor = Ort::Value::CreateTensor<float>(memoryInfo,
-                                                         input_tensor_ptr.get(), inputTensorSize,
+  auto inputOnnxTensor = Ort::Value::CreateTensor<float>(this->info,
+                                                         input_tensor_ptr.get(), this->inputTensorSize,
                                                          this->inputShape.data(), this->inputShape.size());
 
   const char* names_of_input[] = {input_name.data()};  
@@ -191,10 +193,6 @@ Yolov3::postprocess(const ptr_wrapper<std::vector<std::vector<float> > > &infere
     after_nms_class_indices.emplace_back(classIndices[idx]);
     after_nms_scores.emplace_back(scores[idx]);
   }
-  // auto end = std::chrono::system_clock::now();
-  // std::chrono::duration<double> elapsed_seconds = end - start;
-  // std::cout << "-------------------------------------------------------------------" << std::endl;
-  // std::cout << "time taken in cpp postprocessing " << elapsed_seconds.count() << "s" << std::endl;
   return std::make_tuple(after_nms_bboxes, after_nms_class_indices, after_nms_scores);
 }
 
@@ -268,47 +266,13 @@ std::array<float, 4> Yolov3::post_process_box(const float &xt, const float &yt, 
                                               const int64_t &input_image_width) const
 {
   float xmin, xmax, ymin, ymax;
-  if (this->use_letterbox)
-  {
-    int64_t old_h = input_image_height, old_w = input_image_width;
-    int64_t offset_h = 0, offset_w = 0;
-
-    // TODO: This if-block can be precomputed as it is same for each inference
-    if (((float)input_image_width / this->IMG_WIDTH) >=
-        ((float)input_image_height / this->IMG_HEIGHT))
-    {
-      old_h = (float)this->IMG_HEIGHT * input_image_width / this->IMG_WIDTH;
-      offset_h = (old_h - input_image_height) / 2;
-    }
-    else
-    {
-      old_w = (float)this->IMG_WIDTH * input_image_height / this->IMG_HEIGHT;
-      offset_w = (old_w - input_image_width) / 2;
-    }
-
-    xmin = xt * old_w;
-    ymin = yt * old_h;
-    xmax = width * old_w;
-    ymax = height * old_h;
-
-    xmin -= offset_w;
-    ymin -= offset_h;
-    xmax += xmin;
-    ymax += ymin;
-
-    // Convert coordinates wrt model inputs (needed by create_blobs_from_detections())
-    xmin = ((float)xmin / input_image_width) * this->IMG_WIDTH;
-    ymin = ((float)ymin / input_image_height) * this->IMG_HEIGHT;
-    xmax = ((float)xmax / input_image_width) * this->IMG_WIDTH;
-    ymax = ((float)ymax / input_image_height) * this->IMG_HEIGHT;
-  }
-  else
-  {
+ 
+  
     xmin = xt * input_image_width;
     ymin = yt * input_image_height;
     xmax = xmin + width * input_image_width;
     ymax = ymin + height * input_image_height;
-  }
+
 
   xmin = std::max<float>(xmin, 0.0);
   ymin = std::max<float>(ymin, 0.0);

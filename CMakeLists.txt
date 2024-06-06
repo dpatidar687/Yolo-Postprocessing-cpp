@@ -37,7 +37,6 @@ file(GLOB SOURCE_FILES "src/*.cpp")
 file(GLOB HEADER_FILES "src/*.h")
 
 pybind11_add_module(run_yolo_onnx ${SOURCE_FILES} ${HEADER_FILES})
-# add_executable(run_yolo_onnx src/main3.cpp)
 target_include_directories(run_yolo_onnx PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 
@@ -53,8 +52,16 @@ message("lib : ${ONNX_RUNTIME_LIB}")
 include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${ONNX_RUNTIME_SESSION_INCLUDE_DIRS} ${ONNX_RUNTIME_PROVIDERS_INCLUDE_DIRS})
 include_directories(${PROJECT_NAME} /usr/local/include/onnxruntime)
 
+ 
 
-target_link_libraries(run_yolo_onnx PRIVATE ${ONNX_RUNTIME_LIB} ${OpenCV_LIBS} )
+find_package(GSL REQUIRED)
+include_directories(${GSL_INCLUDE_DIRS})
+include_directories(/usr/include/gsl/gsl)
+
+target_link_libraries(run_yolo_onnx PRIVATE ${ONNX_RUNTIME_LIB} ${OpenCV_LIBS}  ${GSL_LIBRARIES})
 
 # target_compile_definitions(${PROJECT_NAME} PRIVATE -DENABLE_ORT)
 # target_link_libraries(${PROJECT_NAME} PUBLIC ${ONNX_RUNTIME_LIB})
+
+
+

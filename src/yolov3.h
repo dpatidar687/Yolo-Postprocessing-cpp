@@ -6,7 +6,7 @@ using namespace std;
 #include <ctime>
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
-
+#include <typeinfo>
 #include <opencv2/opencv.hpp>
 #include <iostream>
 #include <vector>
@@ -23,9 +23,14 @@ namespace py = pybind11;
 #include <stdio.h>
 #include <iostream>
 
-// #include <core/providers/cuda/cuda_provider_factory.h>
+#include <core/providers/cuda/cuda_provider_options.h>
 #include <core/providers/cpu/cpu_provider_factory.h>
 #include "onnxruntime_cxx_api.h"
+#include <core/session/onnxruntime_c_api.h>
+#include <core/providers/tensorrt/tensorrt_provider_factory.h>
+
+
+
 
 template <class T>
 class ptr_wrapper
@@ -56,23 +61,23 @@ private:
     float *dst;
     std::vector<std::vector<float> > ANCHORS;
     std::vector<int64_t> NUM_ANCHORS;
-    bool use_letterbox = false;
 
     Ort::Env env_;
     Ort::Session *session_;
     Ort::SessionOptions sessionOptions;
     Ort::AllocatorWithDefaultOptions allocator_;
+    Ort::MemoryInfo info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
+
+
     std::string model_path_;
-    char const *input_name_;
-    char const *output_name1_;
-    char const *output_name2_;
+    std::string provider = "cpu";
 
     std::string output_name1;
     std::string output_name2;
     std::string input_name ;
     size_t input_count;
     size_t output_count;
-
+    size_t inputTensorSize;
     std::vector<int64_t> inputShape;
 
     std::vector<std::vector<float> > inference_output;
@@ -82,10 +87,8 @@ private:
     float nms_threshold;
     std::string model;
 public:
-    Yolov3() : env_(ORT_LOGGING_LEVEL_WARNING, "test"), allocator_(Ort::AllocatorWithDefaultOptions()), session_(nullptr) {}
-    Yolov3(int number_of_classes, std::vector<std::vector<float> > anchors,
-           const std::string &model_path, int height, int width,
-           int channels, int batch_size);
+    // Yolov3() : env_(ORT_LOGGING_LEVEL_WARNING, "test"), allocator_(Ort::AllocatorWithDefaultOptions()), session_(nullptr) {}
+    Yolov3(int number_of_classes, std::vector<std::vector<float> > anchors,const std::string &model_path, int batch_size, std::string provider);
 
     void preprocess(py::array_t<uchar> image_arr, size_t batch_index);
 
