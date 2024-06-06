@@ -3,7 +3,7 @@
 #include <array>
 #include <string>
 #include <opencv2/opencv.hpp>
-#include <cpu_provider_factory.h>
+#include <core/providers/cpu/cpu_provider_factory.h>
 #include "onnxruntime_cxx_api.h"
 #include <yolov3.h>
 #include <yolov7.h>

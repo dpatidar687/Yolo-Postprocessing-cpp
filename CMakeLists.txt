@@ -12,7 +12,7 @@ set(ONNXRUNTIME_ROOTDIR "${CMAKE_CURRENT_SOURCE_DIR}/onnxruntime-linux-x64-1.12.
 # link_directories("${ONNXRUNTIME_ROOTDIR}/lib")
 
 
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/onnxruntime-linux-x64-1.12.0/include")
+# include_directories("${CMAKE_CURRENT_SOURCE_DIR}/onnxruntime-linux-x64-1.12.0/include")
 find_package(PythonInterp 3.8.10 EXACT REQUIRED COMPONENTS Development)
 find_package(PythonLibs 3.8.10 EXACT REQUIRED COMPONENTS Development)
 find_package(pybind11 CONFIG REQUIRED)
@@ -38,20 +38,23 @@ file(GLOB HEADER_FILES "src/*.h")
 
 pybind11_add_module(run_yolo_onnx ${SOURCE_FILES} ${HEADER_FILES})
 # add_executable(run_yolo_onnx src/main3.cpp)
-target_link_libraries(run_yolo_onnx PRIVATE "${ONNXRUNTIME_ROOTDIR}/lib/libonnxruntime.so" ${OpenCV_LIBS} )
 target_include_directories(run_yolo_onnx PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-# python_add_library(your_app src/main.cpp)
-# add_executable(your_app src/main.cpp)
-# target_include_directories(your_app PUBLIC include /usr/include/python3.8 /usr/local/lib/python3.8/dist-packages/pybind11/include)
-#     "${ONNXRUNTIME_ROOTDIR}/include"                           # Pre-built package
-#                     "${ONNXRUNTIME_ROOTDIR}/include/onnxruntime"               # Linux local install to /usr/local
-#                     "${ONNXRUNTIME_ROOTDIR}/include/onnxruntime/core/session")
-# target_link_libraries(your_app PUBLIC "${ONNXRUNTIME_ROOTDIR}/lib/libonnxruntime.so.1.17.1" ${OpenCV_LIBS}  /usr/lib/x86_64-linux-gnu/libpython3.8.so)
 
-#  message("!!! ${Python_INCLUDE_DIRS}")
 
-# target_include_directories(your_app PRIVATE  {Python_INCLUDE_DIRS} {Pybind11_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
-# set_target_properties(your_app PROPERTIES
-#                                 INTERPROCEDURAL_OPTIMIZATION ON
-#                                 VISIBILITY_INLINES_HIDDEN ON)
+find_path(ONNX_RUNTIME_SESSION_INCLUDE_DIRS onnxruntime_cxx_api.h HINTS /usr/local/include/onnxruntime/core/session/)
+find_path(ONNX_RUNTIME_PROVIDERS_INCLUDE_DIRS cuda_provider_factory.h HINTS /usr/local/include/onnxruntime/core/providers/cuda/)
+find_path(ONNX_RUNTIME_PROVIDERS_INCLUDE_DIRS cpu_provider_factory.h HINTS /usr/local/include/onnxruntime/core/providers/cpu/)
+
+find_library(ONNX_RUNTIME_LIB onnxruntime HINTS /usr/local/lib)
+
+message("lib : ${ONNX_RUNTIME_LIB}")
+
+include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${ONNX_RUNTIME_SESSION_INCLUDE_DIRS} ${ONNX_RUNTIME_PROVIDERS_INCLUDE_DIRS})
+include_directories(${PROJECT_NAME} /usr/local/include/onnxruntime)
+
+
+target_link_libraries(run_yolo_onnx PRIVATE ${ONNX_RUNTIME_LIB} ${OpenCV_LIBS} )
+
+# target_compile_definitions(${PROJECT_NAME} PRIVATE -DENABLE_ORT)
+# target_link_libraries(${PROJECT_NAME} PUBLIC ${ONNX_RUNTIME_LIB})

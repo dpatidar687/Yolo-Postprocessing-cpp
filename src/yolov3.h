@@ -4,9 +4,6 @@ using namespace std;
 #include <vector>
 #include <chrono>
 #include <ctime>
-// #include <onnxruntime/core/providers/cpu/cpu_provider_factory.h>
-// #include "onnxruntime/core/session/onnxruntime_cxx_api.h"
-
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
 
@@ -14,21 +11,21 @@ using namespace std;
 #include <iostream>
 #include <vector>
 #include <random>
-// #include "onnxruntime/core/providers/cpu/cpu_provider_factory.h"
-// #include "onnxruntime/core/session/onnxruntime_cxx_api.h"
 #include <iostream>
 #include <vector>
 #include <array>
 #include <string>
 #include <opencv2/opencv.hpp>
-#include <cpu_provider_factory.h>
-#include "onnxruntime_cxx_api.h"
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/numpy.h>
 namespace py = pybind11;
 #include <stdio.h>
 #include <iostream>
+
+// #include <core/providers/cuda/cuda_provider_factory.h>
+#include <core/providers/cpu/cpu_provider_factory.h>
+#include "onnxruntime_cxx_api.h"
 
 template <class T>
 class ptr_wrapper
@@ -69,6 +66,13 @@ private:
     char const *input_name_;
     char const *output_name1_;
     char const *output_name2_;
+
+    std::string output_name1;
+    std::string output_name2;
+    std::string input_name ;
+    size_t input_count;
+    size_t output_count;
+
     std::vector<int64_t> inputShape;
 
     std::vector<std::vector<float> > inference_output;

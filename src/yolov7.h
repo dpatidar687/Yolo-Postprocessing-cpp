@@ -16,7 +16,7 @@ using namespace std;
 #include <array>
 #include <string>
 #include <opencv2/opencv.hpp>
-#include <cpu_provider_factory.h>
+#include <core/providers/cpu/cpu_provider_factory.h>
 #include "onnxruntime_cxx_api.h"
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>

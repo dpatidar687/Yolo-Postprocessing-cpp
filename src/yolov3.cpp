@@ -48,30 +48,21 @@ Yolov3::Yolov3(int number_of_classes, std::vector<std::vector<float> > anchors,
   session_ = new Ort::Session(env_, this->model_path_.c_str(), sessionOptions);
 
 
-    // size_t input_count = session_->GetInputCount();
-    // size_t output_count = session_->GetOutputCount();
+    this->input_count = session_->GetInputCount();
+    this->output_count = session_->GetOutputCount();
 
-    // Ort::AllocatorWithDefaultOptions allocator;
-    // std::vector<std::string> input_names;
-    // std::vector<std::string> output_names;
+   
+    this-> input_name = session_->GetInputNameAllocated(0, allocator_).get();
+    this-> output_name1 = session_->GetOutputNameAllocated(0, allocator_).get();
+    this-> output_name2 = session_->GetOutputNameAllocated(1, allocator_).get();
+    this->inputShape = session_->GetInputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
+    
+    std::cout<< input_name << std::endl;
+    std::cout<< output_name1 << std::endl;
+    std::cout<< output_name2 << std::endl;
+    std::cout << inputShape.size() << std::endl;
+    std::cout << "Created the session " << std::endl;
 
-    // for (size_t i = 0; i < input_count; ++i) {
-    //     char *input_name = session_->GetInputNameAllocated(i, allocator).get();
-    //     input_names.push_back(std::string(input_name));
-    //     std::cout << "Input name " << i << ": " << input_name << std::endl;
-    // }
-
-    // for (size_t i = 0; i < output_count; ++i) {
-    //     char *output_name = session_->GetOutputNameAllocated(i, allocator).get();
-    //     output_names.push_back(std::string(output_name));
-    //     std::cout << "Output name " << i << ": " << output_name << std::endl;
-    // }
-
-  input_name_ = session_->GetInputName(0, allocator_);
-  output_name1_ = session_->GetOutputName(0, allocator_);
-  output_name2_ = session_->GetOutputName(1, allocator_);
-  inputShape = session_->GetInputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
-  std::cout << "Created the session " << std::endl;
   for (auto &anchor : this->ANCHORS)
 
     this->NUM_ANCHORS.push_back(anchor.size() / 2); // divide by 2 as it has width and height scales
@@ -142,16 +133,13 @@ void Yolov3::detect(
                                                          input_tensor_ptr.get(), inputTensorSize,
                                                          this->inputShape.data(), this->inputShape.size());
 
-  std ::vector<std::string> inputNames = {input_name_};
-
-  static const char *output_names[] = {output_name1_, output_name2_};
-  char const *const *names_of_input = &input_name_;
-  char const *const *names_of_outputs = output_names;
+  const char* names_of_input[] = {input_name.data()};  
+  const char* names_of_outputs[] = {output_name1.data(), output_name2.data()};
 
   auto outputValues = session_->Run(
       Ort::RunOptions{},
       names_of_input,
-      &inputOnnxTensor, inputNames.size(), names_of_outputs, 2);
+      &inputOnnxTensor, this->input_count, names_of_outputs, this->output_count);
 
   float *rawOutput1 = outputValues[0].GetTensorMutableData<float>();
   size_t count1 = outputValues[0].GetTensorTypeAndShapeInfo().GetElementCount();
@@ -164,14 +152,6 @@ void Yolov3::detect(
   inference_output.reserve(outputValues.size());
   inference_output.emplace_back(rawOutput1, rawOutput1 + count1);
   inference_output.emplace_back(rawOutput2, rawOutput2 + count2);
-
-  auto end = std::chrono::system_clock::now();
-  std::chrono::duration<double> elapsed_seconds = end - start;
-  std::cout << "-------------------------------------------------------------------" << std::endl;
-  std::cout << "time taken in cpp infer " << elapsed_seconds.count() << "s" << std::endl;
-  // return ptr_wrapper<std::vector<std::vector<float>>> (inference_output);
-
-  // return ptr_wrapper<float>, ptr_wrapper<float> ;
 }
 std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float> >
 Yolov3::postprocess(const ptr_wrapper<std::vector<std::vector<float> > > &infered,
