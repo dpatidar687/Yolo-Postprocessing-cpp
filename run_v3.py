@@ -46,36 +46,46 @@ output_path = '/docker/deepak/output_video.mp4'  # Update with your output video
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Define the codec
 out = cv2.VideoWriter(output_path, fourcc, 25.0, (frame_width, frame_height))  # Adjust fps if needed
 
-batch_list = []
+# batch_list = []
+
+
+
+
 
 while True:
     
     start_time_batch = time.time()
     
     
-    for j in range(batch_size):     
+
+    ret, full_image = cap.read()
+    if ret == False:
+        break
+    batch_list = []
+    for i in range(batch_size):
+        batch_list.append(full_image)
+
+    pre_time = time.time()
+   
+    v3_object.preprocess_batch(batch_list)
+    preprocessed_img_ptr = v3_object.get_raw_data()
+    
+    print("Preprocess time ", time.time() - pre_time)
+    # pre = v3_object.get_numpy_array_img()
+    # print(len(pre))
         
-        ret, frame = cap.read()
-        if ret == False:
-            break
-        full_image = frame
-        # batch_list.append(full_image)
-        # batch_index = j
-        v3_object.preprocess(full_image, batch_index)
-        preprocessed_img_ptr = v3_object.get_raw_data()
+    # v3_object.preprocess(full_image, batch_index)    
+    # preprocessed_img_ptr = v3_object.get_raw_data()
         
-    pre = v3_object.get_numpy_array_img()
-    print(len(pre))
-  
         
     v3_object.detect(preprocessed_img_ptr)
     feature_map_ptr = v3_object.get_inference_output_ptr()
     
     
-    infer_output = v3_object.get_numpy_array_inference_output()
-    print(len(infer_output[0]), len(infer_output[1]))
+    # infer_output = v3_object.get_numpy_array_inference_output()
+    # print(len(infer_output[0]), len(infer_output[1]))
     
-    
+    post_time = time.time()
     for k in range(batch_size):
         # batch_index = k
         # full_image = batch_list[k]
@@ -94,7 +104,9 @@ while True:
         #     cv2.rectangle(full_image, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0,0), 3)
         # # cv2.imwrite(save_path + 'output.jpg', full_image)
         # out.write(full_image)
-        
+    print("post time ",time.time() - post_time)
+    
+     
     end_time_batch = time.time()
     print("Batch_FPS ", batch_size/(end_time_batch - start_time_batch))
     

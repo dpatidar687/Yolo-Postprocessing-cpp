@@ -89,11 +89,16 @@ private:
     float nms_threshold;
     std::string model;
 public:
-std::vector<std::vector<float>> inference_output;
+    std::vector<std::vector<float>> inference_output;
     // Yolov3() : env_(ORT_LOGGING_LEVEL_WARNING, "test"), allocator_(Ort::AllocatorWithDefaultOptions()), session_(nullptr) {}
     Yolov3(int number_of_classes, std::vector<std::vector<float> > anchors,const std::string &model_path, int batch_size, std::string provider);
 
-    void preprocess(py::array_t<uchar> image_arr, size_t batch_index);
+    // void preprocess(py::array_t<uchar> image_arr, size_t batch_index);
+
+
+    float* preprocess_batch( std::vector<py::array_t<uchar>> &batch) ;
+
+    inline void preprocess(const unsigned char *src, const int64_t b)  ;
 
     float sigmoid(float x) const;
 
@@ -143,6 +148,7 @@ std::vector<std::vector<float>> inference_output;
     ~Yolov3()
     {
         delete session_;
+        delete[] this->dst;
     };
     cv::Mat numpyArrayToMat(py::array_t<uchar> arr);
     ptr_wrapper<float> get_raw_data(void) { return this->dst; }

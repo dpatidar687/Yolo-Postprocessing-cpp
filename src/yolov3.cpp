@@ -97,34 +97,64 @@ cv::Mat Yolov3::numpyArrayToMat(py::array_t<uchar> arr)
 
   return mat;
 }
-void Yolov3::preprocess(py::array_t<uchar> image_arr, size_t batch_index)
-{
-  cv::Mat img = numpyArrayToMat(image_arr);
+float* Yolov3::preprocess_batch(std::vector<py::array_t<uchar>> &batch)  {
+  for (int64_t b = 0; b < batch.size(); ++b) {
 
-  cv::Mat img_resized;
+      cv::Mat img = numpyArrayToMat(batch[b]);
+      cv::Mat temp;
+      cv::resize(img , temp, cv::Size(this->IMG_WIDTH, this->IMG_HEIGHT), 0, 0,
+                 cv::INTER_LINEAR);
+      cv::cvtColor(temp, temp, cv::COLOR_BGR2RGB);
+      this->preprocess(temp.data, b);
+    
+  }
+  return dst;
+}
 
-  cv::resize(img, img_resized, cv::Size(IMG_WIDTH, IMG_HEIGHT));
+inline void Yolov3::preprocess(const unsigned char *src, const int64_t b)  {
 
-  cv::Mat img_normalized;
-  img_normalized = img_resized;
-  cv::Mat img_normalized_rgb;
-  cv::cvtColor(img_normalized, img_normalized_rgb, cv::COLOR_BGR2RGB);
-
-  const unsigned char *src = img_normalized_rgb.data;
-
-  for (int i = 0; i < IMG_HEIGHT; ++i)
-  {
-    for (int j = 0; j < IMG_WIDTH; ++j)
-    {
-      for (int c = 0; c < IMG_CHANNEL; ++c)
-      {
-        this->dst[batch_index * IMG_CHANNEL * IMG_HEIGHT * IMG_WIDTH +
-                  c * IMG_HEIGHT * IMG_WIDTH + i * IMG_WIDTH + j] =
-            ((src[i * IMG_WIDTH * IMG_CHANNEL + j * IMG_CHANNEL + c] / 255.0f));
+  for (int64_t i = 0; i < this->IMG_HEIGHT; ++i) {
+    for (int64_t j = 0; j < this->IMG_WIDTH; ++j) {
+      for (int64_t c = 0; c < this->IMG_CHANNEL; ++c) {
+        this->dst[b * this->IMG_CHANNEL * this->IMG_WIDTH * this->IMG_HEIGHT +
+                  c * this->IMG_HEIGHT * this->IMG_WIDTH + i * this->IMG_WIDTH + j] =
+            src[i * this->IMG_WIDTH * this->IMG_CHANNEL + j * this->IMG_CHANNEL + c] / 255.0;
       }
     }
   }
 }
+
+
+
+
+// void Yolov3::preprocess(py::array_t<uchar> image_arr, size_t batch_index)
+// {
+//   cv::Mat img = numpyArrayToMat(image_arr);
+
+//   cv::Mat img_resized;
+
+//   cv::resize(img, img_resized, cv::Size(IMG_WIDTH, IMG_HEIGHT));
+
+//   cv::Mat img_normalized;
+//   img_normalized = img_resized;
+//   cv::Mat img_normalized_rgb;
+//   cv::cvtColor(img_normalized, img_normalized_rgb, cv::COLOR_BGR2RGB);
+
+//   const unsigned char *src = img_normalized_rgb.data;
+
+//   for (int i = 0; i < IMG_HEIGHT; ++i)
+//   {
+//     for (int j = 0; j < IMG_WIDTH; ++j)
+//     {
+//       for (int c = 0; c < IMG_CHANNEL; ++c)
+//       {
+//         this->dst[batch_index * IMG_CHANNEL * IMG_HEIGHT * IMG_WIDTH +
+//                   c * IMG_HEIGHT * IMG_WIDTH + i * IMG_WIDTH + j] =
+//             ((src[i * IMG_WIDTH * IMG_CHANNEL + j * IMG_CHANNEL + c] / 255.0f));
+//       }
+//     }
+//   }
+// }
 
 void Yolov3::detect(
     ptr_wrapper<float> input_tensor_ptr)
@@ -156,14 +186,18 @@ void Yolov3::detect(
   inference_output.emplace_back(rawOutput2, rawOutput2 + count2);
 
 }
-std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float> >
-Yolov3::postprocess(const ptr_wrapper<std::vector<std::vector<float> > > &infered,
+
+// Yolov3::post_process_batch()
+
+
+
+std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float>>
+Yolov3::postprocess(const ptr_wrapper<std::vector<std::vector<float>>> &infered,
                     const float confidenceThresh, const float nms_threshold, const uint16_t num_classes,
                     const int64_t input_image_height, const int64_t input_image_width,
                     const int64_t batch_ind)
 {
-  // auto start = std::chrono::system_clock::now();
-
+  
   std::vector<std::array<float, 4> > bboxes;
   std::vector<float> scores;
   std::vector<uint64_t> classIndices;
