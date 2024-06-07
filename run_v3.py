@@ -66,16 +66,13 @@ while True:
         batch_list.append(full_image)
 
     pre_time = time.time()
-   
     v3_object.preprocess_batch(batch_list)
     preprocessed_img_ptr = v3_object.get_raw_data()
     
     print("Preprocess time ", time.time() - pre_time)
+    
     # pre = v3_object.get_numpy_array_img()
     # print(len(pre))
-        
-    # v3_object.preprocess(full_image, batch_index)    
-    # preprocessed_img_ptr = v3_object.get_raw_data()
         
         
     v3_object.detect(preprocessed_img_ptr)
@@ -86,10 +83,13 @@ while True:
     # print(len(infer_output[0]), len(infer_output[1]))
     
     post_time = time.time()
-    for k in range(batch_size):
+    list_of_boxes = v3_object.postprocess_batch(feature_map_ptr, confidence , nms_threshold , number_of_classes, full_image.shape[0] , full_image.shape[1])
+    print(len(list_of_boxes), len(list_of_boxes[0]))
+    
+    # for k in range(batch_size):
         # batch_index = k
         # full_image = batch_list[k]
-        list_of_boxes = v3_object.postprocess(feature_map_ptr, confidence , nms_threshold , number_of_classes, full_image.shape[0] , full_image.shape[1] , batch_index)
+        # list_of_boxes = v3_object.postprocess(feature_map_ptr, confidence , nms_threshold , number_of_classes, full_image.shape[0] , full_image.shape[1] , batch_index)
 
         # boxes = list_of_boxes[0]
         # cls = list_of_boxes[1]
