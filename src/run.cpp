@@ -30,9 +30,24 @@ PYBIND11_MODULE(run_yolo_onnx, m)
         .def("detect", &Yolov3::detect)
         .def("postprocess", &Yolov3::postprocess)
         .def("get_raw_data", &Yolov3::get_raw_data)
-        .def("get_inference_output", &Yolov3::get_inference_output);
-
-
+        .def("get_inference_output_ptr", &Yolov3::get_inference_output_ptr)
+        
+        
+        .def("get_numpy_array_img", [](Yolov3 &self) {
+            return py::array_t<float>(
+                {self.get_size_img()},  // shape
+                {sizeof(float)},  // stride
+                self.get_raw_img(),  // the pointer to the data
+                py::cast(&self)  // reference to keep it alive
+            );
+        })
+        
+        .def("get_numpy_array_inference_output", [](Yolov3 &self) {
+            return self.inference_output;  // reference to keep it alive
+            
+        });
+        
+        
     // py::class_<Yolov7>(m, "Yolov7")
         // .def(py::init<int, int, std::vector<std::vector<float>>>())
         // .def("preprocess", &Yolov7::preprocess, py::return_value_policy::reference)

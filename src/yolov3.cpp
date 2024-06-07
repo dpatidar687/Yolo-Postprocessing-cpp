@@ -154,6 +154,7 @@ void Yolov3::detect(
   inference_output.reserve(outputValues.size());
   inference_output.emplace_back(rawOutput1, rawOutput1 + count1);
   inference_output.emplace_back(rawOutput2, rawOutput2 + count2);
+
 }
 std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float> >
 Yolov3::postprocess(const ptr_wrapper<std::vector<std::vector<float> > > &infered,

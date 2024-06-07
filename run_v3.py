@@ -62,12 +62,20 @@ while True:
         # batch_list.append(full_image)
         # batch_index = j
         v3_object.preprocess(full_image, batch_index)
-        flat_list = v3_object.get_raw_data()
+        preprocessed_img_ptr = v3_object.get_raw_data()
+        
+    pre = v3_object.get_numpy_array_img()
+    print(len(pre))
+  
+        
+    v3_object.detect(preprocessed_img_ptr)
+    feature_map_ptr = v3_object.get_inference_output_ptr()
     
-     
-    feature_map_ptr = v3_object.detect(flat_list)
-    feature_map_ptr = v3_object.get_inference_output()
-   
+    
+    infer_output = v3_object.get_numpy_array_inference_output()
+    print(len(infer_output[0]), len(infer_output[1]))
+    
+    
     for k in range(batch_size):
         # batch_index = k
         # full_image = batch_list[k]

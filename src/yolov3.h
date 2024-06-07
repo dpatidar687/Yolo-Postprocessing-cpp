@@ -79,20 +79,21 @@ private:
     size_t output_count;
     size_t inputTensorSize;
     std::vector<int64_t> inputShape;
+    // const char* names_of_input;
+    // const char* names_of_output;
 
-    std::vector<std::vector<float> > inference_output;
+    
 
     int number_of_classes;
     float confidence;
     float nms_threshold;
     std::string model;
 public:
+std::vector<std::vector<float>> inference_output;
     // Yolov3() : env_(ORT_LOGGING_LEVEL_WARNING, "test"), allocator_(Ort::AllocatorWithDefaultOptions()), session_(nullptr) {}
     Yolov3(int number_of_classes, std::vector<std::vector<float> > anchors,const std::string &model_path, int batch_size, std::string provider);
 
     void preprocess(py::array_t<uchar> image_arr, size_t batch_index);
-
-    // size_t vectorProduct(const std::vector<int64_t> &vector);
 
     float sigmoid(float x) const;
 
@@ -121,12 +122,30 @@ public:
                               const std::vector<float> &scores,
                               const float overlapThresh = 0.45,
                               uint64_t topK = std::numeric_limits<uint64_t>::max());
+
+    float* get_raw_img()  {
+        return dst;
+    }
+
+    size_t get_size_img()  {
+        return IMG_WIDTH * IMG_HEIGHT * IMG_CHANNEL * BATCH_SIZE;
+    }
+
+    std::vector<std::vector<float>> get_raw_inference_output() {
+        return inference_output;
+    }
+    size_t get_size_inference_output() {
+        return inference_output.size();
+    }
+
+
+
     ~Yolov3()
     {
         delete session_;
     };
     cv::Mat numpyArrayToMat(py::array_t<uchar> arr);
-
     ptr_wrapper<float> get_raw_data(void) { return this->dst; }
-    ptr_wrapper<std::vector<std::vector<float> > > get_inference_output(void) { return &this->inference_output; }
+    ptr_wrapper<std::vector<std::vector<float>>> get_inference_output_ptr(void) { return &this->inference_output; }
+   
 };
