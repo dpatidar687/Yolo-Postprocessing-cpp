@@ -128,6 +128,11 @@ public:
                               const float overlapThresh = 0.45,
                               uint64_t topK = std::numeric_limits<uint64_t>::max());
 
+ std::vector<std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float>>>
+    postprocess_batch(const ptr_wrapper<std::vector<std::vector<float>>> &infered,
+        const float confidenceThresh, const float nms_threshold, const uint16_t num_classes,
+        const int64_t input_image_height, const int64_t input_image_width);
+               
     float* get_raw_img()  {
         return dst;
     }

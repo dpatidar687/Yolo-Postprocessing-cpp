@@ -182,12 +182,29 @@ void Yolov3::detect(
   // std::vector<std::vector<float>> vectorOfVectors;
   inference_output.clear();
   inference_output.reserve(outputValues.size());
+  // std::cout << outputValues.size() << std::endl;
+  // std::cout << count1 << " " << count2 << std::endl;
   inference_output.emplace_back(rawOutput1, rawOutput1 + count1);
   inference_output.emplace_back(rawOutput2, rawOutput2 + count2);
 
 }
+std::vector<std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float>>>
+Yolov3::postprocess_batch(const ptr_wrapper<std::vector<std::vector<float>>> &infered,
+  const float confidenceThresh, const float nms_threshold, const uint16_t num_classes,
+  const int64_t input_image_height, const int64_t input_image_width)
+{
+  int batch = this->BATCH_SIZE;
+  std::vector<std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float>>> processed_result_vector;
 
-// Yolov3::post_process_batch()
+  for (int batch_ind = 0; batch_ind <  batch; batch_ind++) {
+    std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float>> processed_result  = 
+    this->postprocess( infered, confidenceThresh,nms_threshold,
+         num_classes, input_image_height, input_image_width,batch_ind);
+    
+    processed_result_vector.emplace_back(processed_result);
+  }
+  return processed_result_vector;
+}
 
 
 
