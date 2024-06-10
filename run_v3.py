@@ -61,15 +61,17 @@ while True:
     ret, full_image = cap.read()
     if ret == False:
         break
+    
+    pre_time = time.time()
     batch_list = []
     for i in range(batch_size):
         batch_list.append(full_image)
 
-    pre_time = time.time()
-    v3_object.preprocess_batch(batch_list)
-    preprocessed_img_ptr = v3_object.get_raw_data()
     
-    print("Preprocess time ", time.time() - pre_time)
+    
+    v3_object.preprocess_batch(batch_list)
+    preprocessed_img_ptr = v3_object.get_img_ptr()
+    
     
     # pre = v3_object.get_numpy_array_img()
     # print(len(pre))
@@ -104,7 +106,7 @@ while True:
         #     cv2.rectangle(full_image, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0,0), 3)
         # # cv2.imwrite(save_path + 'output.jpg', full_image)
         # out.write(full_image)
-    print("post time ",time.time() - post_time)
+    print("post time ",time.time() - pre_time)
     
      
     end_time_batch = time.time()

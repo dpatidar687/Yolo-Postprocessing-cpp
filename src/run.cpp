@@ -30,8 +30,7 @@ PYBIND11_MODULE(run_yolo_onnx, m)
         .def("preprocess_batch", &Yolov3::preprocess_batch)
         .def("detect", &Yolov3::detect)
         .def("postprocess_batch", &Yolov3::postprocess_batch)
-        .def("postprocess", &Yolov3::postprocess)
-        .def("get_raw_data", &Yolov3::get_raw_data)
+        .def("get_img_ptr", &Yolov3::get_img_ptr)
         .def("get_inference_output_ptr", &Yolov3::get_inference_output_ptr)
         
         
@@ -46,7 +45,6 @@ PYBIND11_MODULE(run_yolo_onnx, m)
         
         .def("get_numpy_array_inference_output", [](Yolov3 &self) {
             return self.inference_output;  // reference to keep it alive
-            
         });
         
         

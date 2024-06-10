@@ -96,7 +96,7 @@ public:
     // void preprocess(py::array_t<uchar> image_arr, size_t batch_index);
 
 
-    float* preprocess_batch( std::vector<py::array_t<uchar>> &batch) ;
+    float* preprocess_batch( py::list &batch) ;
 
     inline void preprocess(const unsigned char *src, const int64_t b)  ;
 
@@ -156,7 +156,7 @@ public:
         delete[] this->dst;
     };
     cv::Mat numpyArrayToMat(py::array_t<uchar> arr);
-    ptr_wrapper<float> get_raw_data(void) { return this->dst; }
+    ptr_wrapper<float> get_img_ptr(void) { return this->dst; }
     ptr_wrapper<std::vector<std::vector<float>>> get_inference_output_ptr(void) { return &this->inference_output; }
    
 };
