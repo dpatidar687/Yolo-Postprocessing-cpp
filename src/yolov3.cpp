@@ -1,7 +1,6 @@
 
 #include <yolov3.h>
-
-
+#include <opencv2/core.hpp>
 namespace
 {
   template <typename T>
@@ -24,7 +23,6 @@ Yolov3::Yolov3(int number_of_classes, std::vector<std::vector<float> > anchors, 
   this->model_path_ = model_path;
   this->provider = provider;
 
-
   std::cout << model_path << std::endl;
   std::string _name = "onnx_runtime" + std::to_string(rand());
   this->env_ = Ort::Env(ORT_LOGGING_LEVEL_ERROR, _name.c_str());
@@ -33,12 +31,13 @@ Yolov3::Yolov3(int number_of_classes, std::vector<std::vector<float> > anchors, 
   this->sessionOptions.DisableCpuMemArena();
   this->sessionOptions.SetExecutionMode(ExecutionMode::ORT_PARALLEL);
 
-
-  if (provider == "cpu"){
+  if (provider == "cpu")
+  {
     std::cout << "Using CPU" << std::endl;
     this->sessionOptions = Ort::SessionOptions();
   }
-  else if (provider == "gpu"){
+  else if (provider == "gpu")
+  {
     int gpu_id = 0;
     std::cout << "Using GPU with ID: " << gpu_id << "" << std::endl;
     OrtCUDAProviderOptions cuda_options{};
@@ -48,18 +47,14 @@ Yolov3::Yolov3(int number_of_classes, std::vector<std::vector<float> > anchors, 
     this->sessionOptions.SetIntraOpNumThreads(1);
     this->sessionOptions.SetInterOpNumThreads(6);
   }
-  
-  this->session_ = new Ort::Session(env_, this->model_path_.c_str(), sessionOptions);
-  // this->memoryInfo = Ort::MemoryInfo::CreateCpu(OrtAllocatorType::OrtArenaAllocator, OrtMemType::OrtMemTypeDefault);
-    // this->info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
 
+  this->session_ = new Ort::Session(env_, this->model_path_.c_str(), sessionOptions);
   this->input_count = session_->GetInputCount();
   this->output_count = session_->GetOutputCount();
 
-  
-  this-> input_name = session_->GetInputNameAllocated(0, allocator_).get();
-  this-> output_name1 = session_->GetOutputNameAllocated(0, allocator_).get();
-  this-> output_name2 = session_->GetOutputNameAllocated(1, allocator_).get();
+  this->input_name = session_->GetInputNameAllocated(0, allocator_).get();
+  this->output_name1 = session_->GetOutputNameAllocated(0, allocator_).get();
+  this->output_name2 = session_->GetOutputNameAllocated(1, allocator_).get();
   this->inputShape = session_->GetInputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
   std::cout << "Input shape: " << inputShape[0] << " " << inputShape[1] << " " << inputShape[2] << " " << inputShape[3] << std::endl;
   this->IMG_HEIGHT = inputShape[2];
@@ -69,16 +64,16 @@ Yolov3::Yolov3(int number_of_classes, std::vector<std::vector<float> > anchors, 
   this->inputShape[0] = batch_size;
   this->inputTensorSize = this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_HEIGHT * this->IMG_WIDTH;
 
-  std::cout<< "Input name: " << input_name << std::endl;
-  std::cout<< "Output name1: " << output_name1 << std::endl;
-  std::cout<< "Output name2: " << output_name2 << std::endl;
+  std::cout << "Input name: " << input_name << std::endl;
+  std::cout << "Output name1: " << output_name1 << std::endl;
+  std::cout << "Output name2: " << output_name2 << std::endl;
   std::cout << "Created the session " << std::endl;
 
   for (auto &anchor : this->ANCHORS)
-    this->NUM_ANCHORS.push_back(anchor.size() / 2); 
+    this->NUM_ANCHORS.push_back(anchor.size() / 2);
 
   this->dst = new float[this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_WIDTH *
-                        this->IMG_HEIGHT]; 
+                        this->IMG_HEIGHT];
 }
 
 float Yolov3::sigmoid(float x) const
@@ -97,45 +92,110 @@ cv::Mat Yolov3::numpyArrayToMat(py::array_t<uchar> arr)
 
   return mat;
 }
-float* Yolov3::preprocess_batch(py::list &batch)  {
-  for (int64_t b = 0; b < batch.size(); ++b) {
-      py::array_t<uchar> np_array = batch[b].cast<py::array_t<uchar>>();
-      cv::Mat img = numpyArrayToMat(np_array);
 
-      cv::Mat temp;
-      cv::resize(img , temp, cv::Size(this->IMG_WIDTH, this->IMG_HEIGHT), 0, 0,
-                 cv::INTER_LINEAR);
-      cv::cvtColor(temp, temp, cv::COLOR_BGR2RGB);
-      this->preprocess(temp.data, b);
-    
+void Yolov3::hwc_to_chw(cv::InputArray src, cv::OutputArray dst1) {
+  std::vector<cv::Mat> channels;
+  cv::split(src, channels);
+
+  // Stretch one-channel images to vector
+  for (auto &img : channels) {
+    img = img.reshape(1, 1);
   }
+
+  // Concatenate three vectors to one
+  cv::hconcat( channels, dst1 );
+}
+
+
+// float *Yolov3::preprocess_batch2(py::list &batch)
+// {
+
+// for (int64_t b = 0; b < batch.size(); ++b)
+//    {
+
+//     py::array_t<uchar> np_array = batch[b].cast<py::array_t<uchar> >();
+//       cv::Mat img = numpyArrayToMat(np_array);
+//       cv::Mat temp;
+//       cv::resize(img, temp, cv::Size(this->IMG_WIDTH, this->IMG_HEIGHT), 0, 0,
+//                 cv::INTER_LINEAR);
+//       cv::cvtColor(temp, temp, cv::COLOR_BGR2RGB);
+
+//       cv::Mat dst1;
+//       hwc_to_chw(temp, dst1);
+//      dst1 = dst1/255f;
+//    }  
+
+// return dst1.data;
+
+// }
+
+// void Yolov3::vectotProduct(float* dst, float* dst1){
+
+  
+// }
+
+
+
+
+
+
+
+float *Yolov3::preprocess_batch(py::list &batch)
+{
+auto start = std::chrono::high_resolution_clock::now();
+  for (int64_t b = 0; b < batch.size(); ++b)
+  {
+    py::array_t<uchar> np_array = batch[b].cast<py::array_t<uchar> >();
+    cv::Mat img = numpyArrayToMat(np_array);
+    cv::Mat temp;
+    cv::resize(img, temp, cv::Size(this->IMG_WIDTH, this->IMG_HEIGHT), 0, 0,
+               cv::INTER_LINEAR);
+    cv::cvtColor(temp, temp, cv::COLOR_BGR2RGB);
+    this->preprocess(temp.data, b);
+  }
+
+ 
+ auto finish = std::chrono::high_resolution_clock::now();
+std::chrono::duration<double, std::milli> elapsed = finish - start;
+std::cout << "Elapsed Time in preprocessing : " << elapsed.count() << " seconds" << std::endl;
   return dst;
 }
 
-inline void Yolov3::preprocess(const unsigned char *src, const int64_t b)  {
+inline void Yolov3::preprocess(const unsigned char *src, const int64_t b)
+{
+  auto start = std::chrono::high_resolution_clock::now();
 
-  for (int64_t i = 0; i < this->IMG_HEIGHT; ++i) {
-    for (int64_t j = 0; j < this->IMG_WIDTH; ++j) {
-      for (int64_t c = 0; c < this->IMG_CHANNEL; ++c) {
+  for (int64_t i = 0; i < this->IMG_HEIGHT; ++i)
+  {
+    for (int64_t j = 0; j < this->IMG_WIDTH; ++j)
+    {
+      for (int64_t c = 0; c < this->IMG_CHANNEL; ++c)
+      {
         this->dst[b * this->IMG_CHANNEL * this->IMG_WIDTH * this->IMG_HEIGHT +
                   c * this->IMG_HEIGHT * this->IMG_WIDTH + i * this->IMG_WIDTH + j] =
             src[i * this->IMG_WIDTH * this->IMG_CHANNEL + j * this->IMG_CHANNEL + c] / 255.0;
       }
     }
   }
+  auto finish = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double, std::milli> elapsed = finish - start;
+  std::cout << "Elapsed Time in loop of pre only : " << elapsed.count() << " seconds" << std::endl;
 }
 
-void Yolov3::detect(
-    ptr_wrapper<float> input_tensor_ptr)
-{
-  // Ort::MemoryInfo memoryInfo = Ort::MemoryInfo::CreateCpu(OrtAllocatorType::OrtArenaAllocator, OrtMemType::OrtMemTypeDefault);
 
+
+
+
+void Yolov3::detect(ptr_wrapper<float> input_tensor_ptr)
+{
+
+auto start = std::chrono::high_resolution_clock::now();
   auto inputOnnxTensor = Ort::Value::CreateTensor<float>(this->info,
                                                          input_tensor_ptr.get(), this->inputTensorSize,
                                                          this->inputShape.data(), this->inputShape.size());
 
-  const char* names_of_input[] = {input_name.data()};  
-  const char* names_of_outputs[] = {output_name1.data(), output_name2.data()};
+  const char *names_of_input[] = {input_name.data()};
+  const char *names_of_outputs[] = {output_name1.data(), output_name2.data()};
 
   auto outputValues = session_->Run(
       Ort::RunOptions{},
@@ -148,46 +208,54 @@ void Yolov3::detect(
   float *rawOutput2 = outputValues[1].GetTensorMutableData<float>();
   size_t count2 = outputValues[1].GetTensorTypeAndShapeInfo().GetElementCount();
 
-  // std::vector<std::vector<float>> vectorOfVectors;
   inference_output.clear();
   inference_output.reserve(outputValues.size());
-  // std::cout << outputValues.size() << std::endl;
-  // std::cout << count1 << " " << count2 << std::endl;
+ 
   inference_output.emplace_back(rawOutput1, rawOutput1 + count1);
   inference_output.emplace_back(rawOutput2, rawOutput2 + count2);
 
+ auto finish = std::chrono::high_resolution_clock::now();
+std::chrono::duration<double, std::milli> elapsed = finish - start;
+std::cout << "Elapsed Time in inference : " << elapsed.count() << " seconds" << std::endl;
+   
 }
-std::vector<std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float>>>
-Yolov3::postprocess_batch(const ptr_wrapper<std::vector<std::vector<float>>> &infered,
-  const float confidenceThresh, const float nms_threshold, const uint16_t num_classes,
-  const int64_t input_image_height, const int64_t input_image_width)
+// std::vector<std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float>>>
+py::list Yolov3::postprocess_batch(const ptr_wrapper<std::vector<std::vector<float> > > &infered,
+                                   const float confidenceThresh, const float nms_threshold, const uint16_t num_classes,
+                                   const int64_t input_image_height, const int64_t input_image_width)
 {
-  int batch = this->BATCH_SIZE;
-  std::vector<std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float>>> processed_result_vector;
+auto start = std::chrono::high_resolution_clock::now();
 
-  for (int batch_ind = 0; batch_ind <  batch; batch_ind++) {
-    std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float>> processed_result  = 
-    this->postprocess( infered, confidenceThresh,nms_threshold,
-         num_classes, input_image_height, input_image_width,batch_ind);
-    
-    processed_result_vector.emplace_back(processed_result);
+  int batch = this->BATCH_SIZE;
+  // std::vector<std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float>>> processed_result_vector;
+  py::list processed_result_vector;
+
+  for (int batch_ind = 0; batch_ind < batch; batch_ind++)
+  {
+    // std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float>> processed_result  =
+    py::tuple processed_result = this->postprocess(infered, confidenceThresh, nms_threshold,
+                                                   num_classes, input_image_height, input_image_width, batch_ind);
+
+    processed_result_vector.append(processed_result);
   }
+  
+ auto finish = std::chrono::high_resolution_clock::now();
+std::chrono::duration<double, std::milli> elapsed = finish - start;
+std::cout << "Elapsed Time in postprocessing : " << elapsed.count() << " seconds" << std::endl;
   return processed_result_vector;
 }
 
-
-
-std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float>>
-Yolov3::postprocess(const ptr_wrapper<std::vector<std::vector<float>>> &infered,
-                    const float confidenceThresh, const float nms_threshold, const uint16_t num_classes,
-                    const int64_t input_image_height, const int64_t input_image_width,
-                    const int64_t batch_ind)
+// std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float>>
+py::tuple Yolov3::postprocess(const ptr_wrapper<std::vector<std::vector<float> > > &infered,
+                              const float confidenceThresh, const float nms_threshold, const uint16_t num_classes,
+                              const int64_t input_image_height, const int64_t input_image_width,
+                              const int64_t batch_ind)
 {
-  
+
   std::vector<std::array<float, 4> > bboxes;
   std::vector<float> scores;
   std::vector<uint64_t> classIndices;
- 
+
   for (int i = 0; i < infered.get()->size(); i++)
   {
     this->post_process_feature_map(infered.get()->at(i).data(), confidenceThresh, num_classes,
@@ -214,7 +282,7 @@ Yolov3::postprocess(const ptr_wrapper<std::vector<std::vector<float>>> &infered,
     after_nms_class_indices.emplace_back(classIndices[idx]);
     after_nms_scores.emplace_back(scores[idx]);
   }
-  return std::make_tuple(after_nms_bboxes, after_nms_class_indices, after_nms_scores);
+  return py::make_tuple(after_nms_bboxes, after_nms_class_indices, after_nms_scores);
 }
 
 void Yolov3::post_process_feature_map(const float *out_feature_map, const float confidenceThresh,
@@ -287,13 +355,11 @@ std::array<float, 4> Yolov3::post_process_box(const float &xt, const float &yt, 
                                               const int64_t &input_image_width) const
 {
   float xmin, xmax, ymin, ymax;
- 
-  
-    xmin = xt * input_image_width;
-    ymin = yt * input_image_height;
-    xmax = xmin + width * input_image_width;
-    ymax = ymin + height * input_image_height;
 
+  xmin = xt * input_image_width;
+  ymin = yt * input_image_height;
+  xmax = xmin + width * input_image_width;
+  ymax = ymin + height * input_image_height;
 
   xmin = std::max<float>(xmin, 0.0);
   ymin = std::max<float>(ymin, 0.0);

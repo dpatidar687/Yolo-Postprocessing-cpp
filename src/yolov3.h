@@ -104,8 +104,8 @@ public:
 
     void detect(ptr_wrapper<float> input_tensor_ptr);
 
-    std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float> >
-    postprocess(const ptr_wrapper<std::vector<std::vector<float> > > &infered,
+    // std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float> >
+    py::tuple postprocess(const ptr_wrapper<std::vector<std::vector<float> > > &infered,
                 const float confidenceThresh, const float nms_threshold, const uint16_t num_classes,
                 const int64_t input_image_height, const int64_t input_image_width,
                 const int64_t batch_ind);
@@ -128,8 +128,8 @@ public:
                               const float overlapThresh = 0.45,
                               uint64_t topK = std::numeric_limits<uint64_t>::max());
 
- std::vector<std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float>>>
-    postprocess_batch(const ptr_wrapper<std::vector<std::vector<float>>> &infered,
+//  std::vector<std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float>>>
+   py::list postprocess_batch(const ptr_wrapper<std::vector<std::vector<float>>> &infered,
         const float confidenceThresh, const float nms_threshold, const uint16_t num_classes,
         const int64_t input_image_height, const int64_t input_image_width);
                
@@ -158,5 +158,9 @@ public:
     cv::Mat numpyArrayToMat(py::array_t<uchar> arr);
     ptr_wrapper<float> get_img_ptr(void) { return this->dst; }
     ptr_wrapper<std::vector<std::vector<float>>> get_inference_output_ptr(void) { return &this->inference_output; }
-   
+
+    void hwc_to_chw(cv::InputArray src, cv::OutputArray dst);
+    float* dst1;
+    float* preprocess_batch2(py::list &batch);
+
 };

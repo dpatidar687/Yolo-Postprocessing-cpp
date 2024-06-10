@@ -9,22 +9,21 @@ import torch
 
 
 # model_path = "/docker/deepak/models/yolo_tiny_25_07.onnx"
-model_path = "/docker/deepak/models/person_head_tinyv3.onnx"
+# model_path = "/docker/deepak/models/person_head_tinyv3.onnx"
 save_path = '/docker/deepak/yolo_onnx_release/image/'
 video_path = "/docker/deepak/PlatformEdgeCrossing.avi"
+
+
+model_path = "/docker/models/common.tiny_yolov3/v1/onnx/yolov3-tiny.onnx"
 # video_path = "/docker/deepak/side _camera_office.mp4"
 
 
 start_time =  time.time()
-batch_size = 64
-batch_index = 0
-channels = 3
-height = 640
-width = 640
+batch_size = 1
 nms_threshold = 0.45
-number_of_classes = 2
+number_of_classes = 80
 confidence = 0.6
-provider='gpu'
+provider='cpu'
 
 anchors = [[81, 82, 135, 169, 344, 319],
         [10, 14, 23, 27, 37, 58]]
@@ -52,17 +51,14 @@ out = cv2.VideoWriter(output_path, fourcc, 25.0, (frame_width, frame_height))  #
 
 
 
-while True:
-    
-    start_time_batch = time.time()
-    
+while True: 
     
 
     ret, full_image = cap.read()
     if ret == False:
         break
     
-    pre_time = time.time()
+    start_batch_time = time.time()
     batch_list = []
     for i in range(batch_size):
         batch_list.append(full_image)
@@ -71,55 +67,50 @@ while True:
     
     v3_object.preprocess_batch(batch_list)
     preprocessed_img_ptr = v3_object.get_img_ptr()
-    
+    print("preprocess time ",(time.time() - start_batch_time)*1000)
+
     
     # pre = v3_object.get_numpy_array_img()
     # print(len(pre))
         
-        
+    detect_start_time = time.time()   
     v3_object.detect(preprocessed_img_ptr)
     feature_map_ptr = v3_object.get_inference_output_ptr()
-    
-    
+    print("detect time ",(time.time() - detect_start_time) *1000)
+
     # infer_output = v3_object.get_numpy_array_inference_output()
     # print(len(infer_output[0]), len(infer_output[1]))
     
-    post_time = time.time()
+    post_start_time = time.time()
     list_of_boxes = v3_object.postprocess_batch(feature_map_ptr, confidence , nms_threshold , number_of_classes, full_image.shape[0] , full_image.shape[1])
-    print(len(list_of_boxes), len(list_of_boxes[0]))
+    print("post time ",(time.time() - post_start_time)*1000)
     
-    # for k in range(batch_size):
-        # batch_index = k
-        # full_image = batch_list[k]
-        # list_of_boxes = v3_object.postprocess(feature_map_ptr, confidence , nms_threshold , number_of_classes, full_image.shape[0] , full_image.shape[1] , batch_index)
-
-        # boxes = list_of_boxes[0]
-        # cls = list_of_boxes[1]
-        # score = list_of_boxes[2]
-
-        # for i in range(len(boxes)) :
-        #     x1 = boxes[i][0]
-        #     y1 = boxes[i][1]
-        #     x2 = boxes[i][2]
-        #     y2 = boxes[i][3]
-        #     print(x1, y1, x2, y2, cls[i], score[i])
-        #     cv2.rectangle(full_image, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0,0), 3)
-        # # cv2.imwrite(save_path + 'output.jpg', full_image)
-        # out.write(full_image)
-    print("post time ",time.time() - pre_time)
+    for k in range(batch_size):
+        batch_index = k
+        full_image = batch_list[k]
+        
+        boxes = list_of_boxes[k][0]
+        cls = list_of_boxes[k][1]
+        score = list_of_boxes[k][2]
+        print(k, len(boxes))
+        for i in range(len(boxes)) :
+            x1 = boxes[i][0]
+            y1 = boxes[i][1]
+            x2 = boxes[i][2]
+            y2 = boxes[i][3]
+            print(x1, y1, x2, y2, cls[i], score[i])
+            cv2.rectangle(full_image, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0,0), 3)
+    #     # cv2.imwrite(save_path + 'output.jpg', full_image)
+    #     out.write(full_image)
+    # print("entire time ",time.time() - start_time)
     
      
     end_time_batch = time.time()
-    print("Batch_FPS ", batch_size/(end_time_batch - start_time_batch))
+    print("overall_time ", (end_time_batch - start_batch_time)*1000)
+    print("Batch_FPS ", batch_size/(end_time_batch - start_batch_time))
+    print("------------------------------------------------------------------------------------")
     
 cap.release()
 out.release()
 
-loop_end_time = time.time()
-entire_time = (loop_end_time - loop_start_time)
-print("Entire time ", entire_time)
-
-print("FPS ", 40/entire_time)
-
-exit()
 
