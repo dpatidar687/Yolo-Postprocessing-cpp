@@ -159,8 +159,8 @@ public:
     ptr_wrapper<float> get_img_ptr(void) { return this->dst; }
     ptr_wrapper<std::vector<std::vector<float>>> get_inference_output_ptr(void) { return &this->inference_output; }
 
-    void hwc_to_chw(cv::InputArray src, cv::OutputArray dst);
-    float* dst1;
-    float* preprocess_batch2(py::list &batch);
+    // void hwc_to_chw(cv::InputArray src, cv::OutputArray dst);
+    // // float* dst1;
+    // void preprocess_batch2(py::list &batch);
 
 };

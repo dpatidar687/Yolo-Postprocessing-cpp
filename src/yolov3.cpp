@@ -93,48 +93,27 @@ cv::Mat Yolov3::numpyArrayToMat(py::array_t<uchar> arr)
   return mat;
 }
 
-void Yolov3::hwc_to_chw(cv::InputArray src, cv::OutputArray dst1) {
-  std::vector<cv::Mat> channels;
-  cv::split(src, channels);
-
-  // Stretch one-channel images to vector
-  for (auto &img : channels) {
-    img = img.reshape(1, 1);
-  }
-
-  // Concatenate three vectors to one
-  cv::hconcat( channels, dst1 );
-}
 
 
-// float *Yolov3::preprocess_batch2(py::list &batch)
-// {
 
-// for (int64_t b = 0; b < batch.size(); ++b)
-//    {
+// static void hwc_to_chw(cv::InputArray src, cv::OutputArray dst) {
+//     std::vector<cv::Mat> channels;
+//     cv::split(src, channels);
 
-//     py::array_t<uchar> np_array = batch[b].cast<py::array_t<uchar> >();
-//       cv::Mat img = numpyArrayToMat(np_array);
-//       cv::Mat temp;
-//       cv::resize(img, temp, cv::Size(this->IMG_WIDTH, this->IMG_HEIGHT), 0, 0,
-//                 cv::INTER_LINEAR);
-//       cv::cvtColor(temp, temp, cv::COLOR_BGR2RGB);
+//     // Stretch one-channel images to vector
+//     for (auto &img : channels) {
+//         img = img.reshape(1, 1); // Flatten to a row vector
+//     }
 
-//       cv::Mat dst1;
-//       hwc_to_chw(temp, dst1);
-//      dst1 = dst1/255f;
-//    }  
+//     // Concatenate the channels into a single row-wise matrix
+//     cv::Mat channelConcatenated;
+//     cv::hconcat(channels, channelConcatenated);
 
-// return dst1.data;
-
+//     // Reshape the concatenated matrix into CHW format
+//     cv::Size newShape(channels[0].cols, channels[0].rows); // Width x Height
+//     dst.create(channels.size(), newShape, channels[0].type());
+//     dst = channelConcatenated.reshape(1, channels.size());
 // }
-
-// void Yolov3::vectotProduct(float* dst, float* dst1){
-
-  
-// }
-
-
 
 
 
@@ -164,19 +143,31 @@ std::cout << "Elapsed Time in preprocessing : " << elapsed.count() << " seconds"
 inline void Yolov3::preprocess(const unsigned char *src, const int64_t b)
 {
   auto start = std::chrono::high_resolution_clock::now();
-
   for (int64_t i = 0; i < this->IMG_HEIGHT; ++i)
-  {
-    for (int64_t j = 0; j < this->IMG_WIDTH; ++j)
     {
-      for (int64_t c = 0; c < this->IMG_CHANNEL; ++c)
-      {
-        this->dst[b * this->IMG_CHANNEL * this->IMG_WIDTH * this->IMG_HEIGHT +
-                  c * this->IMG_HEIGHT * this->IMG_WIDTH + i * this->IMG_WIDTH + j] =
-            src[i * this->IMG_WIDTH * this->IMG_CHANNEL + j * this->IMG_CHANNEL + c] / 255.0;
-      }
+        for (int64_t j = 0; j < this->IMG_WIDTH; ++j)
+        {
+            int64_t src_index = (i * this->IMG_WIDTH + j) * this->IMG_CHANNEL;
+            
+            for (int64_t c = 0; c < this->IMG_CHANNEL; ++c)
+            {
+                this->dst[b * this->IMG_CHANNEL * this->IMG_WIDTH * this->IMG_HEIGHT +
+                  c * this->IMG_HEIGHT * this->IMG_WIDTH + i * this->IMG_WIDTH + j] = src[src_index + c] / 255.0;
+            }
+        }
     }
-  }
+  // for (int64_t i = 0; i < this->IMG_HEIGHT; ++i)
+  // {
+  //   for (int64_t j = 0; j < this->IMG_WIDTH; ++j)
+  //   {
+  //     for (int64_t c = 0; c < this->IMG_CHANNEL; ++c)
+  //     {
+  //       this->dst[b * this->IMG_CHANNEL * this->IMG_WIDTH * this->IMG_HEIGHT +
+  //                 c * this->IMG_HEIGHT * this->IMG_WIDTH + i * this->IMG_WIDTH + j] =
+  //           src[i * this->IMG_WIDTH * this->IMG_CHANNEL + j * this->IMG_CHANNEL + c] / 255.0;
+  //     }
+  //   }
+  // }
   auto finish = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double, std::milli> elapsed = finish - start;
   std::cout << "Elapsed Time in loop of pre only : " << elapsed.count() << " seconds" << std::endl;
@@ -217,6 +208,7 @@ auto start = std::chrono::high_resolution_clock::now();
  auto finish = std::chrono::high_resolution_clock::now();
 std::chrono::duration<double, std::milli> elapsed = finish - start;
 std::cout << "Elapsed Time in inference : " << elapsed.count() << " seconds" << std::endl;
+// std::cout << inference_output[1].size() << std::endl;
    
 }
 // std::vector<std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float>>>

@@ -6,7 +6,7 @@ import build.run_yolo_onnx
 import numpy as np
 import cv2
 import torch
-
+import ctypes
 
 # model_path = "/docker/deepak/models/yolo_tiny_25_07.onnx"
 # model_path = "/docker/deepak/models/person_head_tinyv3.onnx"
@@ -67,6 +67,8 @@ while True:
     
     v3_object.preprocess_batch(batch_list)
     preprocessed_img_ptr = v3_object.get_img_ptr()
+    
+    # print("preprocessed img ptr ",preprocessed_img_ptr)
     print("preprocess time ",(time.time() - start_batch_time)*1000)
 
     
@@ -76,8 +78,11 @@ while True:
     detect_start_time = time.time()   
     v3_object.detect(preprocessed_img_ptr)
     feature_map_ptr = v3_object.get_inference_output_ptr()
+    # print("feature_map_ptr " , feature_map_ptr)
+    
+   
     print("detect time ",(time.time() - detect_start_time) *1000)
-
+ 
     # infer_output = v3_object.get_numpy_array_inference_output()
     # print(len(infer_output[0]), len(infer_output[1]))
     
@@ -85,21 +90,21 @@ while True:
     list_of_boxes = v3_object.postprocess_batch(feature_map_ptr, confidence , nms_threshold , number_of_classes, full_image.shape[0] , full_image.shape[1])
     print("post time ",(time.time() - post_start_time)*1000)
     
-    for k in range(batch_size):
-        batch_index = k
-        full_image = batch_list[k]
+    # for k in range(batch_size):
+    #     batch_index = k
+    #     full_image = batch_list[k]
         
-        boxes = list_of_boxes[k][0]
-        cls = list_of_boxes[k][1]
-        score = list_of_boxes[k][2]
-        print(k, len(boxes))
-        for i in range(len(boxes)) :
-            x1 = boxes[i][0]
-            y1 = boxes[i][1]
-            x2 = boxes[i][2]
-            y2 = boxes[i][3]
-            print(x1, y1, x2, y2, cls[i], score[i])
-            cv2.rectangle(full_image, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0,0), 3)
+    #     boxes = list_of_boxes[k][0]
+    #     cls = list_of_boxes[k][1]
+    #     score = list_of_boxes[k][2]
+    #     print(k, len(boxes))
+    #     for i in range(len(boxes)) :
+    #         x1 = boxes[i][0]
+    #         y1 = boxes[i][1]
+    #         x2 = boxes[i][2]
+    #         y2 = boxes[i][3]
+    #         print(x1, y1, x2, y2, cls[i], score[i])
+    #         cv2.rectangle(full_image, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0,0), 3)
     #     # cv2.imwrite(save_path + 'output.jpg', full_image)
     #     out.write(full_image)
     # print("entire time ",time.time() - start_time)
