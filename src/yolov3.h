@@ -61,6 +61,7 @@ private:
     float *dst;
     std::vector<std::vector<float> > ANCHORS;
     std::vector<int64_t> NUM_ANCHORS;
+    int number_of_classes;
 
     Ort::Env env_;
     Ort::Session *session_;
@@ -83,15 +84,14 @@ private:
     // const char* names_of_output;
 
     
-
-    int number_of_classes;
     float confidence;
     float nms_threshold;
     std::string model;
 public:
     std::vector<std::vector<float>> inference_output;
     // Yolov3() : env_(ORT_LOGGING_LEVEL_WARNING, "test"), allocator_(Ort::AllocatorWithDefaultOptions()), session_(nullptr) {}
-    Yolov3(int number_of_classes, std::vector<std::vector<float> > anchors,const std::string &model_path, int batch_size, std::string provider);
+    Yolov3(int number_of_classes, std::vector<std::vector<float> > anchors,const std::string &model_path,
+        int batch_size, std::string provider);
 
     // void preprocess(py::array_t<uchar> image_arr, size_t batch_index);
 
@@ -130,7 +130,7 @@ public:
 
 //  std::vector<std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float>>>
    py::list postprocess_batch(const ptr_wrapper<std::vector<std::vector<float>>> &infered,
-        const float confidenceThresh, const float nms_threshold, const uint16_t num_classes,
+        const float confidenceThresh, const float nms_threshold,
         const int64_t input_image_height, const int64_t input_image_width);
                
     float* get_raw_img()  {

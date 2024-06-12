@@ -2,11 +2,11 @@
 using namespace std;
 #include <iostream>
 #include <vector>
-
-
+#include <chrono>
+#include <ctime>
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
-
+#include <typeinfo>
 #include <opencv2/opencv.hpp>
 #include <iostream>
 #include <vector>
@@ -16,67 +16,101 @@ using namespace std;
 #include <array>
 #include <string>
 #include <opencv2/opencv.hpp>
-#include <core/providers/cpu/cpu_provider_factory.h>
-#include "onnxruntime_cxx_api.h"
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/numpy.h>
 namespace py = pybind11;
 #include <stdio.h>
 #include <iostream>
+#include <core/providers/cuda/cuda_provider_options.h>
+#include <core/providers/cpu/cpu_provider_factory.h>
+#include "onnxruntime_cxx_api.h"
+#include <core/session/onnxruntime_c_api.h>
+#include <core/providers/tensorrt/tensorrt_provider_factory.h>
+
+template <class T>
+class v7_ptr_wrapper
+{
+public:
+    v7_ptr_wrapper() : ptr(nullptr) {}
+    v7_ptr_wrapper(T *ptr) : ptr(ptr) {}
+    v7_ptr_wrapper(const v7_ptr_wrapper &other) : ptr(other.ptr) {}
+    T &operator*() const { return *ptr; }
+    T *operator->() const { return ptr; }
+    T *get() const { return ptr; }
+    void destroy() { delete ptr; }
+    T &operator[](std::size_t idx) const { return ptr[idx]; }
+
+private:
+    T *ptr;
+    size_t size;
+};
+
 
 
 class Yolov7
 {
-
     int IMG_WIDTH;
     int IMG_HEIGHT;
     int BATCH_SIZE = 1;
     int IMG_CHANNEL;
     float *dst;
-    std::vector<std::vector<float>> ANCHORS;
+    std::vector<std::vector<float> > ANCHORS;
     std::vector<int64_t> NUM_ANCHORS;
-    bool use_letterbox = false; // whether to use letterbox while preprocessing and postproceesing
+    int number_of_classes;
 
     Ort::Env env_;
     Ort::Session *session_;
+    Ort::SessionOptions sessionOptions;
     Ort::AllocatorWithDefaultOptions allocator_;
-    std::string model_path_;
-    char const *input_name_;
-    char const *output_name1_;
-    char const *output_name2_;
-    char const *output_name3_;
+    Ort::MemoryInfo info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
 
-    int number_of_classes;
+
+    std::string model_path_;
+    std::string provider = "cpu";
+
+    std::string output_name1;
+    std::string output_name2;
+    std::string output_name3;
+    std::string input_name ;
+    size_t input_count;
+    size_t output_count;
+    size_t inputTensorSize;
+    std::vector<int64_t> inputShape;
+    
+
+    
     float confidence;
     float nms_threshold;
     std::string model;
 
 public:
-    Yolov7() : env_(ORT_LOGGING_LEVEL_WARNING, "test"), allocator_(Ort::AllocatorWithDefaultOptions()), session_(nullptr) {}
-    Yolov7(int batch_size, int image_size, std::vector<std::vector<float>> anchors);
+    std::vector<std::vector<float>> inference_output;
+    Yolov7(int number_of_classes, std::vector<std::vector<float> > anchors,const std::string &model_path,
+         int batch_size, std::string provider);
 
     float sigmoid(float x) const;
 
-    std::vector<float> preprocess(py::array_t<uchar> image_arr, size_t batch_index);
+    float* preprocess_batch( py::list &batch) ;
 
-    void initialize(const std::string &model_path, int height, int width,
-                    int channels, int batch_size);
+    inline void preprocess(const unsigned char *src, const int64_t b)  ;
 
-    size_t vectorProduct(const std::vector<int64_t> &vector);
+    cv::Mat numpyArrayToMat(py::array_t<uchar> arr);
 
-    std::vector<std::vector<float>> detect(std::vector<float> input_tensor);
 
-    std::tuple<std::vector<std::array<float, 4>>, std::vector<uint64_t>, std::vector<float>> postprocess(const std::vector<std::vector<float>> &inferenceOutput,
-                                                                                                         const float confidenceThresh, const float nms_threshold, const uint16_t num_classes,
-                                                                                                         const int64_t input_image_height, const int64_t input_image_width,
-                                                                                                         const int64_t batch_ind);
+    void detect(v7_ptr_wrapper<float> input_tensor_ptr);
+
+    // std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float> >
+    py::tuple postprocess(const v7_ptr_wrapper<std::vector<std::vector<float> > > &infered,
+                const float confidenceThresh, const float nms_threshold, const uint16_t num_classes,
+                const int64_t input_image_height, const int64_t input_image_width,
+                const int64_t batch_ind);
 
     void post_process_feature_map(const float *out_feature_map, const float confidenceThresh,
                                   const int num_classes, const int64_t input_image_height,
                                   const int64_t input_image_width, const int factor,
                                   const std::vector<float> &anchors, const int64_t &num_anchors,
-                                  std::vector<std::array<float, 4>> &bboxes,
+                                  std::vector<std::array<float, 4> > &bboxes,
                                   std::vector<float> &scores,
                                   std::vector<uint64_t> &classIndices, const int b);
 
@@ -85,14 +119,37 @@ public:
                                           const int64_t &input_image_height,
                                           const int64_t &input_image_width) const;
 
-    std::vector<uint64_t> nms(const std::vector<std::array<float, 4>> &bboxes,
+    std::vector<uint64_t> nms(const std::vector<std::array<float, 4> > &bboxes,
                               const std::vector<float> &scores,
                               const float overlapThresh = 0.45,
                               uint64_t topK = std::numeric_limits<uint64_t>::max());
 
+//  std::vector<std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float>>>
+   py::list postprocess_batch(const v7_ptr_wrapper<std::vector<std::vector<float>>> &infered,
+        const float confidenceThresh, const float nms_threshold,
+        const int64_t input_image_height, const int64_t input_image_width);
+               
+    float* get_raw_img()  {
+        return dst;
+    }
+
+    size_t get_size_img()  {
+        return IMG_WIDTH * IMG_HEIGHT * IMG_CHANNEL * BATCH_SIZE;
+    }
+
+    std::vector<std::vector<float>> get_raw_inference_output() {
+        return inference_output;
+    }
+    size_t get_size_inference_output() {
+        return inference_output.size();
+    }
+
+
+    v7_ptr_wrapper<float> get_img_ptr(void) { return this->dst; }
+    v7_ptr_wrapper<std::vector<std::vector<float>>> get_inference_output_ptr(void) { return &this->inference_output; }
     ~Yolov7()
     {
         delete session_;
+        delete[] this->dst;
     };
-    cv::Mat numpyArrayToMat(py::array_t<uchar> arr) ;
 };  

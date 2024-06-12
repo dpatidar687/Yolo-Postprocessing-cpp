@@ -15,6 +15,7 @@ video_path = "/docker/deepak/PlatformEdgeCrossing.avi"
 
 
 model_path = "/docker/models/common.tiny_yolov3/v1/onnx/yolov3-tiny.onnx"
+img_path = "/docker/deepak/image/image3.jpg"
 # video_path = "/docker/deepak/side _camera_office.mp4"
 
 
@@ -22,7 +23,7 @@ start_time =  time.time()
 batch_size = 1
 nms_threshold = 0.45
 number_of_classes = 80
-confidence = 0.6
+confidence = 0.1
 provider='cpu'
 
 anchors = [[81, 82, 135, 169, 344, 319],
@@ -54,10 +55,10 @@ out = cv2.VideoWriter(output_path, fourcc, 25.0, (frame_width, frame_height))  #
 while True: 
     
 
-    ret, full_image = cap.read()
-    if ret == False:
-        break
-    
+    # ret, full_image = cap.read()
+    # if ret == False:
+    #     break
+    full_image = cv2.imread(img_path)
     start_batch_time = time.time()
     batch_list = []
     for i in range(batch_size):
@@ -67,8 +68,6 @@ while True:
     
     v3_object.preprocess_batch(batch_list)
     preprocessed_img_ptr = v3_object.get_img_ptr()
-    
-    # print("preprocessed img ptr ",preprocessed_img_ptr)
     print("preprocess time ",(time.time() - start_batch_time)*1000)
 
     
@@ -87,33 +86,34 @@ while True:
     # print(len(infer_output[0]), len(infer_output[1]))
     
     post_start_time = time.time()
-    list_of_boxes = v3_object.postprocess_batch(feature_map_ptr, confidence , nms_threshold , number_of_classes, full_image.shape[0] , full_image.shape[1])
+    list_of_boxes = v3_object.postprocess_batch(feature_map_ptr, confidence , nms_threshold , full_image.shape[0] , full_image.shape[1])
     print("post time ",(time.time() - post_start_time)*1000)
-    
-    # for k in range(batch_size):
-    #     batch_index = k
-    #     full_image = batch_list[k]
+   
+    for k in range(batch_size):
+        batch_index = k
+        full_image = batch_list[k]
         
-    #     boxes = list_of_boxes[k][0]
-    #     cls = list_of_boxes[k][1]
-    #     score = list_of_boxes[k][2]
-    #     print(k, len(boxes))
-    #     for i in range(len(boxes)) :
-    #         x1 = boxes[i][0]
-    #         y1 = boxes[i][1]
-    #         x2 = boxes[i][2]
-    #         y2 = boxes[i][3]
-    #         print(x1, y1, x2, y2, cls[i], score[i])
-    #         cv2.rectangle(full_image, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0,0), 3)
-    #     # cv2.imwrite(save_path + 'output.jpg', full_image)
-    #     out.write(full_image)
-    # print("entire time ",time.time() - start_time)
+        boxes = list_of_boxes[k][0]
+        cls = list_of_boxes[k][1]
+        score = list_of_boxes[k][2]
+        print(k, len(boxes))
+        for i in range(len(boxes)) :
+            x1 = boxes[i][0]
+            y1 = boxes[i][1]
+            x2 = boxes[i][2]
+            y2 = boxes[i][3]
+            print(x1, y1, x2, y2, cls[i], score[i])
+            cv2.rectangle(full_image, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0,0), 3)
+        cv2.imwrite('/docker/deepak/image/v3_output.jpg', full_image)
+        out.write(full_image)
+    print("entire time ",time.time() - start_time)
     
      
     end_time_batch = time.time()
     print("overall_time ", (end_time_batch - start_batch_time)*1000)
     print("Batch_FPS ", batch_size/(end_time_batch - start_batch_time))
     print("------------------------------------------------------------------------------------")
+    exit()
     
 cap.release()
 out.release()
