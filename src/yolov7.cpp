@@ -51,10 +51,6 @@ Yolov7::Yolov7(int number_of_classes, std::vector<std::vector<float> > anchors, 
   this->output_count = session_->GetOutputCount();
 
   this->input_name = session_->GetInputNameAllocated(0, allocator_).get();
-  this->output_name1 = session_->GetOutputNameAllocated(0, allocator_).get();
-  this->output_name2 = session_->GetOutputNameAllocated(1, allocator_).get();
-  this->output_name3 = session_->GetOutputNameAllocated(2, allocator_).get();
-
 
   this->inputShape = session_->GetInputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
   std::cout << "Input shape: " << inputShape[0] << " " << inputShape[1] << " " << inputShape[2] << " " << inputShape[3] << std::endl;
@@ -67,9 +63,12 @@ Yolov7::Yolov7(int number_of_classes, std::vector<std::vector<float> > anchors, 
   this->inputTensorSize = this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_HEIGHT * this->IMG_WIDTH;
 
   std::cout << "Input name: " << input_name << std::endl;
-  std::cout << "Output name1: " << output_name1 << std::endl;
-  std::cout << "Output name2: " << output_name2 << std::endl;
-  std::cout << "Output name3: " << output_name3 << std::endl;
+  for (int i = 0; i < this->output_count; ++i)
+  {
+    output_names.push_back(session_->GetOutputNameAllocated(i, allocator_).get());
+    std::cout << "Output name " << i << ": " << output_names[i] << std::endl;
+  }
+
   std::cout << "Created the session " << std::endl;
 
   for (auto &anchor : this->ANCHORS)
@@ -77,17 +76,17 @@ Yolov7::Yolov7(int number_of_classes, std::vector<std::vector<float> > anchors, 
 
   this->dst = new float[this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_WIDTH *
                         this->IMG_HEIGHT];
-
 }
-cv::Mat Yolov7::numpyArrayToMat(py::array_t<uchar> arr) {
-    auto buffer = arr.request();
-    int height = buffer.shape[0];
-    int width = buffer.shape[1];
-    int channels = buffer.shape[2];
+cv::Mat Yolov7::numpyArrayToMat(py::array_t<uchar> arr)
+{
+  auto buffer = arr.request();
+  int height = buffer.shape[0];
+  int width = buffer.shape[1];
+  int channels = buffer.shape[2];
 
-    cv::Mat mat(height, width, CV_8UC(channels), buffer.ptr);
+  cv::Mat mat(height, width, CV_8UC(channels), buffer.ptr);
 
-    return mat;
+  return mat;
 }
 
 float Yolov7::sigmoid(float x) const
@@ -95,9 +94,9 @@ float Yolov7::sigmoid(float x) const
   return 1.0 / (1.0 + std::exp(-x));
 }
 
-float* Yolov7::preprocess_batch(py::list &batch)
+float *Yolov7::preprocess_batch(py::list &batch)
 {
-    auto start_batch = std::chrono::high_resolution_clock::now();
+  auto start_batch = std::chrono::high_resolution_clock::now();
   for (int64_t b = 0; b < batch.size(); ++b)
   {
     py::array_t<uchar> np_array = batch[b].cast<py::array_t<uchar> >();
@@ -109,10 +108,9 @@ float* Yolov7::preprocess_batch(py::list &batch)
     this->preprocess(temp.data, b);
   }
 
- 
-    auto finish = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double, std::milli> elapsed = finish - start_batch;
-    std::cout << "Elapsed Time in preprocessing : " << elapsed.count() << " mili seconds" << std::endl;
+  auto finish = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double, std::milli> elapsed = finish - start_batch;
+  std::cout << "Elapsed Time in preprocessing : " << elapsed.count() << " mili seconds" << std::endl;
   return dst;
 }
 
@@ -120,7 +118,7 @@ inline void Yolov7::preprocess(const unsigned char *src, const int64_t b)
 {
   auto start = std::chrono::high_resolution_clock::now();
 
-   for (int64_t i = 0; i < this->IMG_HEIGHT; ++i)
+  for (int64_t i = 0; i < this->IMG_HEIGHT; ++i)
   {
     for (int64_t j = 0; j < this->IMG_WIDTH; ++j)
     {
@@ -137,58 +135,50 @@ inline void Yolov7::preprocess(const unsigned char *src, const int64_t b)
   // std::cout << "Elapsed Time in loop of pre only : " << elapsed.count() << " seconds" << std::endl;
 }
 
-
-
 void Yolov7::detect(v7_ptr_wrapper<float> input_tensor_ptr)
 {
 
-    auto start = std::chrono::high_resolution_clock::now();
+  auto start = std::chrono::high_resolution_clock::now();
   auto inputOnnxTensor = Ort::Value::CreateTensor<float>(this->info,
                                                          input_tensor_ptr.get(), this->inputTensorSize,
                                                          this->inputShape.data(), this->inputShape.size());
 
   const char *names_of_input[] = {input_name.data()};
-  const char *names_of_outputs[] = {output_name1.data(), output_name2.data(), output_name3.data()};
+  std::vector<const char *> names_of_outputs_ptr;
+  for (const auto &str : output_names)
+  {
+    names_of_outputs_ptr.push_back(str.c_str());
+  }
 
-  auto outputValues = session_->Run(
-      Ort::RunOptions{},
-      names_of_input,
-      &inputOnnxTensor, this->input_count, names_of_outputs, this->output_count);
+  const char *const *names_of_outputs_cstr = names_of_outputs_ptr.data();
 
-  float *rawOutput1 = outputValues[0].GetTensorMutableData<float>();
-  size_t count1 = outputValues[0].GetTensorTypeAndShapeInfo().GetElementCount();
-
-  float *rawOutput2 = outputValues[1].GetTensorMutableData<float>();
-  size_t count2 = outputValues[1].GetTensorTypeAndShapeInfo().GetElementCount();
-
-  float *rawOutput3 = outputValues[2].GetTensorMutableData<float>();
-  size_t count3 = outputValues[2].GetTensorTypeAndShapeInfo().GetElementCount();
+  auto outputValues = session_->Run(Ort::RunOptions{},
+                                    names_of_input,
+                                    &inputOnnxTensor, this->input_count,
+                                    names_of_outputs_cstr, this->output_count);
 
   inference_output.clear();
   inference_output.reserve(outputValues.size());
- 
-  inference_output.emplace_back(rawOutput3, rawOutput3 + count3);
-  inference_output.emplace_back(rawOutput2, rawOutput2 + count2);
-  inference_output.emplace_back(rawOutput1, rawOutput1 + count1);
-  
-  //   inference_output.emplace_back(rawOutput1, rawOutput1 + count1);
-  //  inference_output.emplace_back(rawOutput3, rawOutput3 + count3);
-  // inference_output.emplace_back(rawOutput2, rawOutput2 + count2);
 
-auto finish = std::chrono::high_resolution_clock::now();
-std::chrono::duration<double, std::milli> elapsed = finish - start;
-std::cout << "Elapsed Time in inference : " << elapsed.count() << " seconds" << std::endl;
-// std::cout << inference_output[0].size() << std::endl;
-// std::cout << inference_output[1].size() << std::endl;
-// std::cout << inference_output[2].size() << std::endl;
-   
+
+  for(int i = outputValues.size()-1 ; i >= 0; i--){
+
+   inference_output.emplace_back(
+            outputValues[i].GetTensorMutableData<float>(), outputValues[i].GetTensorMutableData<float>() +
+           outputValues[i].GetTensorTypeAndShapeInfo().GetElementCount()
+           );
+  }
+
+  auto finish = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double, std::milli> elapsed = finish - start;
+  std::cout << "Elapsed Time in inference : " << elapsed.count() << " seconds" << std::endl;
 }
 
 py::list Yolov7::postprocess_batch(const v7_ptr_wrapper<std::vector<std::vector<float> > > &infered,
                                    const float confidenceThresh, const float nms_threshold,
                                    const int64_t input_image_height, const int64_t input_image_width)
 {
-auto start = std::chrono::high_resolution_clock::now();
+  auto start = std::chrono::high_resolution_clock::now();
 
   int batch = this->BATCH_SIZE;
   const uint16_t num_classes = this->number_of_classes;
@@ -200,11 +190,11 @@ auto start = std::chrono::high_resolution_clock::now();
                                                    num_classes, input_image_height, input_image_width, batch_ind);
     processed_result_vector.append(processed_result);
   }
-  
-    auto finish = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double, std::milli> elapsed = finish - start;
-    std::cout << "Elapsed Time in postprocessing : " << elapsed.count() << " seconds" << std::endl;
-    return processed_result_vector;
+
+  auto finish = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double, std::milli> elapsed = finish - start;
+  std::cout << "Elapsed Time in postprocessing : " << elapsed.count() << " seconds" << std::endl;
+  return processed_result_vector;
 }
 
 // std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float>>
@@ -261,6 +251,16 @@ void Yolov7::post_process_feature_map(const float *out_feature_map, const float 
   const int64_t feature_map_size = feature_map_width * feature_map_height;
   const int64_t num_filters = (num_classes + 5) * num_anchors;
   const int64_t num_boxes = feature_map_size * num_filters;
+
+  std::cout << "-----------------------------------------------------------" << std::endl;
+  for (int i = 0; i < anchors.size(); i++)
+  {
+    std::cout << anchors[i];
+  }
+  std::cout << "feature map height is " << feature_map_height << std::endl;
+  std::cout << "factor is " << factor << std::endl;
+  std::cout << "input image height is " << input_image_height << std::endl;
+  std::cout << "input image width is " << input_image_width << std::endl;
 
   float tmpScores[num_classes];
 

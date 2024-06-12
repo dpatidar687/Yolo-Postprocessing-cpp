@@ -73,15 +73,12 @@ private:
     std::string model_path_;
     std::string provider = "cpu";
 
-    std::string output_name1;
-    std::string output_name2;
     std::string input_name ;
     size_t input_count;
     size_t output_count;
     size_t inputTensorSize;
     std::vector<int64_t> inputShape;
-    // const char* names_of_input;
-    // const char* names_of_output;
+    std::vector<std::string> output_names ;
 
     
     float confidence;

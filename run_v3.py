@@ -16,6 +16,8 @@ video_path = "/docker/deepak/PlatformEdgeCrossing.avi"
 
 model_path = "/docker/models/common.tiny_yolov3/v1/onnx/yolov3-tiny.onnx"
 img_path = "/docker/deepak/image/image3.jpg"
+img_path = "/docker/deepak/image/person_standing.webp"
+
 # video_path = "/docker/deepak/side _camera_office.mp4"
 
 
@@ -82,9 +84,14 @@ while True:
    
     print("detect time ",(time.time() - detect_start_time) *1000)
  
-    # infer_output = v3_object.get_numpy_array_inference_output()
-    # print(len(infer_output[0]), len(infer_output[1]))
+    infer_output = v3_object.get_numpy_array_inference_output()
     
+    
+    # print(len(infer_output[0]), len(infer_output[1]))
+    # layer_0 = np.array(infer_output[0]).reshape(1,255,13,13)
+    # layer_1 = np.array(infer_output[1]).reshape(1,255,26,26)
+    
+     
     post_start_time = time.time()
     list_of_boxes = v3_object.postprocess_batch(feature_map_ptr, confidence , nms_threshold , full_image.shape[0] , full_image.shape[1])
     print("post time ",(time.time() - post_start_time)*1000)

@@ -22,11 +22,13 @@ using namespace std;
 namespace py = pybind11;
 #include <stdio.h>
 #include <iostream>
+
 #include <core/providers/cuda/cuda_provider_options.h>
 #include <core/providers/cpu/cpu_provider_factory.h>
 #include "onnxruntime_cxx_api.h"
 #include <core/session/onnxruntime_c_api.h>
 #include <core/providers/tensorrt/tensorrt_provider_factory.h>
+#include <onnxruntime_c_api.h>
 
 template <class T>
 class v7_ptr_wrapper
@@ -68,10 +70,6 @@ class Yolov7
 
     std::string model_path_;
     std::string provider = "cpu";
-
-    std::string output_name1;
-    std::string output_name2;
-    std::string output_name3;
     std::string input_name ;
     size_t input_count;
     size_t output_count;
@@ -79,7 +77,9 @@ class Yolov7
     std::vector<int64_t> inputShape;
     
 
-    
+
+    std::vector<std::string> output_names ;
+
     float confidence;
     float nms_threshold;
     std::string model;
