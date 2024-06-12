@@ -48,8 +48,6 @@ private:
     size_t size;
 };
 
-
-
 class Yolov7
 {
     int IMG_WIDTH;
@@ -66,45 +64,42 @@ class Yolov7
     Ort::SessionOptions sessionOptions;
     Ort::AllocatorWithDefaultOptions allocator_;
     Ort::MemoryInfo info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
-
+    Ort::RunOptions runOptions;
 
     std::string model_path_;
     std::string provider = "cpu";
-    std::string input_name ;
+    std::string input_name;
     size_t input_count;
     size_t output_count;
     size_t inputTensorSize;
     std::vector<int64_t> inputShape;
-    
 
-
-    std::vector<std::string> output_names ;
+    std::vector<std::string> output_names;
+    std::vector<std::string> input_names;
 
     float confidence;
     float nms_threshold;
     std::string model;
 
 public:
-    std::vector<std::vector<float>> inference_output;
-    Yolov7(int number_of_classes, std::vector<std::vector<float> > anchors,const std::string &model_path,
-         int batch_size, std::string provider);
+    std::vector<std::vector<float> > inference_output;
+    Yolov7(int number_of_classes, std::vector<std::vector<float> > anchors, const std::string &model_path,
+           int batch_size, std::string provider);
 
     float sigmoid(float x) const;
 
-    float* preprocess_batch( py::list &batch) ;
+    float *preprocess_batch(py::list &batch);
 
-    inline void preprocess(const unsigned char *src, const int64_t b)  ;
+    inline void preprocess(const unsigned char *src, const int64_t b);
 
     cv::Mat numpyArrayToMat(py::array_t<uchar> arr);
 
-
     void detect(v7_ptr_wrapper<float> input_tensor_ptr);
 
-    // std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float> >
     py::tuple postprocess(const v7_ptr_wrapper<std::vector<std::vector<float> > > &infered,
-                const float confidenceThresh, const float nms_threshold, const uint16_t num_classes,
-                const int64_t input_image_height, const int64_t input_image_width,
-                const int64_t batch_ind);
+                          const float confidenceThresh, const float nms_threshold, const uint16_t num_classes,
+                          const int64_t input_image_height, const int64_t input_image_width,
+                          const int64_t batch_ind);
 
     void post_process_feature_map(const float *out_feature_map, const float confidenceThresh,
                                   const int num_classes, const int64_t input_image_height,
@@ -124,32 +119,34 @@ public:
                               const float overlapThresh = 0.45,
                               uint64_t topK = std::numeric_limits<uint64_t>::max());
 
-//  std::vector<std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float>>>
-   py::list postprocess_batch(const v7_ptr_wrapper<std::vector<std::vector<float>>> &infered,
-        const float confidenceThresh, const float nms_threshold,
-        const int64_t input_image_height, const int64_t input_image_width);
-               
-    float* get_raw_img()  {
+    py::list postprocess_batch(const v7_ptr_wrapper<std::vector<std::vector<float> > > &infered,
+                               const float confidenceThresh, const float nms_threshold,
+                               const int64_t input_image_height, const int64_t input_image_width);
+
+    float *get_raw_img()
+    {
         return dst;
     }
 
-    size_t get_size_img()  {
+    size_t get_size_img()
+    {
         return IMG_WIDTH * IMG_HEIGHT * IMG_CHANNEL * BATCH_SIZE;
     }
 
-    std::vector<std::vector<float>> get_raw_inference_output() {
+    std::vector<std::vector<float> > get_raw_inference_output()
+    {
         return inference_output;
     }
-    size_t get_size_inference_output() {
+    size_t get_size_inference_output()
+    {
         return inference_output.size();
     }
 
-
     v7_ptr_wrapper<float> get_img_ptr(void) { return this->dst; }
-    v7_ptr_wrapper<std::vector<std::vector<float>>> get_inference_output_ptr(void) { return &this->inference_output; }
+    v7_ptr_wrapper<std::vector<std::vector<float> > > get_inference_output_ptr(void) { return &this->inference_output; }
     ~Yolov7()
     {
         delete session_;
         delete[] this->dst;
     };
-};  
+};

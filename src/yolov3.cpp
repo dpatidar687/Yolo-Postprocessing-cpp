@@ -97,7 +97,7 @@ cv::Mat Yolov3::numpyArrayToMat(py::array_t<uchar> arr)
 
 float *Yolov3::preprocess_batch(py::list &batch)
 {
-  auto start = std::chrono::high_resolution_clock::now();
+  // auto start = std::chrono::high_resolution_clock::now();
   for (int64_t b = 0; b < batch.size(); ++b)
   {
     py::array_t<uchar> np_array = batch[b].cast<py::array_t<uchar> >();
@@ -110,15 +110,15 @@ float *Yolov3::preprocess_batch(py::list &batch)
     this->preprocess(temp.data, b);
   }
 
-  auto finish = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double, std::milli> elapsed = finish - start;
-  std::cout << "Elapsed Time in preprocessing : " << elapsed.count() << " seconds" << std::endl;
+  // auto finish = std::chrono::high_resolution_clock::now();
+  // std::chrono::duration<double, std::milli> elapsed = finish - start;
+  // std::cout << "Elapsed Time in preprocessing : " << elapsed.count() << " seconds" << std::endl;
   return dst;
 }
 
 inline void Yolov3::preprocess(const unsigned char *src, const int64_t b)
 {
-  auto start = std::chrono::high_resolution_clock::now();
+  // auto start = std::chrono::high_resolution_clock::now();
   for (int64_t i = 0; i < this->IMG_HEIGHT; ++i)
   {
     for (int64_t j = 0; j < this->IMG_WIDTH; ++j)
@@ -131,16 +131,15 @@ inline void Yolov3::preprocess(const unsigned char *src, const int64_t b)
       }
     }
   }
-  // std::cout << "dst : " << dst[0] << std::endl;
-  auto finish = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double, std::milli> elapsed = finish - start;
-  std::cout << "Elapsed Time in loop of pre only : " << elapsed.count() << " seconds" << std::endl;
+  // auto finish = std::chrono::high_resolution_clock::now();
+  // std::chrono::duration<double, std::milli> elapsed = finish - start;
+  // std::cout << "Elapsed Time in loop of pre only : " << elapsed.count() << " seconds" << std::endl;
 }
 
 void Yolov3::detect(ptr_wrapper<float> input_tensor_ptr)
 {
 
-  auto start = std::chrono::high_resolution_clock::now();
+  // auto start = std::chrono::high_resolution_clock::now();
   auto inputOnnxTensor = Ort::Value::CreateTensor<float>(this->info,
                                                          input_tensor_ptr.get(), this->inputTensorSize,
                                                          this->inputShape.data(), this->inputShape.size());
@@ -153,7 +152,7 @@ void Yolov3::detect(ptr_wrapper<float> input_tensor_ptr)
 
   const char *const *names_of_outputs_cstr = names_of_outputs_ptr.data();
 
-  auto outputValues = session_->Run(Ort::RunOptions{},
+  auto outputValues = session_->Run(this->runOptions,
                                     names_of_input,
                                     &inputOnnxTensor, this->input_count,
                                     names_of_outputs_cstr, this->output_count);
@@ -164,23 +163,19 @@ void Yolov3::detect(ptr_wrapper<float> input_tensor_ptr)
   for (size_t i = 0; i < outputValues.size(); ++i)
   {
     inference_output.emplace_back(
-            outputValues[i].GetTensorMutableData<float>(), outputValues[i].GetTensorMutableData<float>() +
-           outputValues[i].GetTensorTypeAndShapeInfo().GetElementCount()
-           );
+        outputValues[i].GetTensorMutableData<float>(), outputValues[i].GetTensorMutableData<float>() +
+                                                           outputValues[i].GetTensorTypeAndShapeInfo().GetElementCount());
   }
 
-  auto finish = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double, std::milli> elapsed = finish - start;
-  std::cout << "Elapsed Time in inference : " << elapsed.count() << " seconds" << std::endl;
-  std::cout << inference_output[0].size() << std::endl;
-  std::cout << inference_output[1].size() << std::endl;
+  // auto finish = std::chrono::high_resolution_clock::now();
+  // std::chrono::duration<double, std::milli> elapsed = finish - start;
+  // std::cout << "Elapsed Time in inference : " << elapsed.count() << " seconds" << std::endl;
 }
-// std::vector<std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float>>>
 py::list Yolov3::postprocess_batch(const ptr_wrapper<std::vector<std::vector<float> > > &infered,
                                    const float confidenceThresh, const float nms_threshold,
                                    const int64_t input_image_height, const int64_t input_image_width)
 {
-  auto start = std::chrono::high_resolution_clock::now();
+  // auto start = std::chrono::high_resolution_clock::now();
 
   int batch = this->BATCH_SIZE;
   const int64_t num_classes = this->number_of_classes;
@@ -196,9 +191,9 @@ py::list Yolov3::postprocess_batch(const ptr_wrapper<std::vector<std::vector<flo
     processed_result_vector.append(processed_result);
   }
 
-  auto finish = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double, std::milli> elapsed = finish - start;
-  std::cout << "Elapsed Time in postprocessing : " << elapsed.count() << " seconds" << std::endl;
+  // auto finish = std::chrono::high_resolution_clock::now();
+  // std::chrono::duration<double, std::milli> elapsed = finish - start;
+  // std::cout << "Elapsed Time in postprocessing : " << elapsed.count() << " seconds" << std::endl;
   return processed_result_vector;
 }
 
@@ -251,16 +246,12 @@ void Yolov3::post_process_feature_map(const float *out_feature_map, const float 
                                       std::vector<uint64_t> &classIndices, const int b)
 {
 
-  // TODO: use precomputed values from onnx model
   const int64_t feature_map_height = this->IMG_HEIGHT / factor;
   const int64_t feature_map_width = this->IMG_WIDTH / factor;
   const int64_t feature_map_size = feature_map_width * feature_map_height;
   const int64_t num_filters = (num_classes + 5) * num_anchors;
   const int64_t num_boxes = feature_map_size * num_filters;
   float tmpScores[num_classes];
-
-  // cout << "num_boxes is " << num_boxes << endl;
-  // cout << feature_map_height << feature_map_width << endl;
 
   std::vector<float> outputData(out_feature_map + b * num_boxes,
                                 out_feature_map + (b + 1) * num_boxes);
