@@ -80,24 +80,26 @@ private:
     float confidence;
     float nms_threshold;
     std::string model;
+    py::array py_arr_new;
+    py::capsule capsule;
+    py::list pylist;
+
 
 public:
     std::vector<std::vector<float> > inference_output;
     Yolov3(int number_of_classes, std::vector<std::vector<float> > anchors, const std::string &model_path,
            int batch_size, std::string provider);
 
-    float *preprocess_batch(py::list &batch);
+    float * preprocess_batch(py::list &batch);
 
     inline void preprocess(const unsigned char *src, const int64_t b);
 
     float sigmoid(float x) const;
 
-    void detect(ptr_wrapper<float> input_tensor_ptr);
+    py::list detect(ptr_wrapper<float> input_tensor_ptr);
+    // void detect(py::array input_tensor_array);
 
-    py::tuple postprocess(const ptr_wrapper<std::vector<std::vector<float> > > &infered,
-                          const float confidenceThresh, const float nms_threshold, const uint16_t num_classes,
-                          const int64_t input_image_height, const int64_t input_image_width,
-                          const int64_t batch_ind);
+
 
     void post_process_feature_map(const float *out_feature_map, const float confidenceThresh,
                                   const int num_classes, const int64_t input_image_height,
@@ -117,14 +119,42 @@ public:
                               const float overlapThresh = 0.45,
                               uint64_t topK = std::numeric_limits<uint64_t>::max());
 
-    //  std::vector<std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float>>>
-    py::list postprocess_batch(const ptr_wrapper<std::vector<std::vector<float> > > &infered,
+    // py::list postprocess_batch(const ptr_wrapper<std::vector<std::vector<float> > > &infered,
+    //                            const float confidenceThresh, const float nms_threshold,
+    //                            const int64_t input_image_height, const int64_t input_image_width);
+
+
+    // py::tuple postprocess(const ptr_wrapper<std::vector<std::vector<float> > > &infered,
+    //                       const float confidenceThresh, const float nms_threshold, const uint16_t num_classes,
+    //                       const int64_t input_image_height, const int64_t input_image_width,
+    //                       const int64_t batch_ind);
+
+
+
+    // void post_process_feature_map(py::list out_feature_map, const float confidenceThresh,
+    //                               const int num_classes, const int64_t input_image_height,
+    //                               const int64_t input_image_width, const int factor,
+    //                               const std::vector<float> &anchors, const int64_t &num_anchors,
+    //                               std::vector<std::array<float, 4> > &bboxes,
+    //                               std::vector<float> &scores,
+    //                               std::vector<uint64_t> &classIndices, const int b);
+
+    py::tuple postprocess(py::list &infered,
+                          const float confidenceThresh, const float nms_threshold, const uint16_t num_classes,
+                          const int64_t input_image_height, const int64_t input_image_width,
+                          const int64_t batch_ind);
+    py::list postprocess_batch(py::list &infered,
                                const float confidenceThresh, const float nms_threshold,
                                const int64_t input_image_height, const int64_t input_image_width);
 
-    float *get_raw_img()
+    py::array get_numpy_array_img()
     {
-        return dst;
+        
+        auto capsule = py::capsule(dst, [](void *dst) { delete reinterpret_cast<float*>(dst); });
+        this->py_arr_new.release();
+        capsule.release();
+        this->py_arr_new = py::array(this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_WIDTH * this->IMG_HEIGHT, dst, capsule);
+        return this->py_arr_new;
     }
 
     size_t get_size_img()
@@ -148,5 +178,23 @@ public:
     };
     cv::Mat numpyArrayToMat(py::array_t<uchar> arr);
     ptr_wrapper<float> get_img_ptr(void) { return this->dst; }
-    ptr_wrapper<std::vector<std::vector<float> > > get_inference_output_ptr(void) { return &this->inference_output; }
+
+    // ptr_wrapper<std::vector<std::vector<float> > > get_inference_output_ptr(void) { 
+    //     // return &this->inference_output; 
+        
+    //     std::vector<std::vector<float>> vec;
+    //     vec.clear();
+    //     for (const auto& sublist : this->pylist) {
+    //         vec.push_back(py::cast<std::vector<float>>(sublist));
+    //     }
+    //     std::cout<< "In get_infer_out_prt function " << std::endl;       
+    //     return &vec;
+        
+    //     }
+
+
+    ptr_wrapper<std::vector<std::vector<float> > > get_inference_output_ptr(void) { 
+        return &this->inference_output;
+        
+        }
 };

@@ -109,6 +109,14 @@ public:
                                   std::vector<float> &scores,
                                   std::vector<uint64_t> &classIndices, const int b);
 
+    
+    void post_process_new(const float *out_feature_map, const float confidenceThresh,
+                              const int num_classes, const int64_t input_image_height,
+                              const int64_t input_image_width,
+                              std::vector<std::array<float, 4> > &bboxes,
+                              std::vector<float> &scores,
+                              std::vector<uint64_t> &classIndices, const int b, const int64_t num_boxes) ;
+
     std::array<float, 4> post_process_box(const float &xt, const float &yt, const float &width,
                                           const float &height,
                                           const int64_t &input_image_height,

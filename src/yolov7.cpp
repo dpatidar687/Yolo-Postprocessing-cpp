@@ -142,12 +142,12 @@ void Yolov7::detect(v7_ptr_wrapper<float> input_tensor_ptr)
                                                          this->inputShape.data(), this->inputShape.size());
 
   const char *names_of_input[] = {input_name.data()};
-
   std::vector<const char *> names_of_outputs_ptr;
   for (const auto &str : output_names)
   {
     names_of_outputs_ptr.push_back(str.c_str());
   }
+
   const char *const *names_of_outputs_cstr = names_of_outputs_ptr.data();
 
   auto outputValues = session_->Run(this->runOptions,
@@ -205,12 +205,24 @@ py::tuple Yolov7::postprocess(const v7_ptr_wrapper<std::vector<std::vector<float
   std::vector<float> scores;
   std::vector<uint64_t> classIndices;
 
-  for (int i = 0; i < infered.get()->size(); i++)
+  std::cout << "size of infered : " << infered.get()->size() << std::endl;
+  if (infered.get()->size() > 1)
   {
-    this->post_process_feature_map(infered.get()->at(i).data(), confidenceThresh, num_classes,
-                                   input_image_height, input_image_width, 32 / pow(2, i),
-                                   this->ANCHORS[i], this->NUM_ANCHORS[i], bboxes, scores,
-                                   classIndices, batch_ind);
+    for (int i = 0; i < infered.get()->size(); i++)
+    {
+      this->post_process_feature_map(infered.get()->at(i).data(), confidenceThresh, num_classes,
+                                     input_image_height, input_image_width, 32 / pow(2, i),
+                                     this->ANCHORS[i], this->NUM_ANCHORS[i], bboxes, scores,
+                                     classIndices, batch_ind);
+    }
+  }
+  else
+  {
+    // const int64_t boxes = infered.get()->at(0).data()[1];
+    std::cout << "Warning there is only one output the post process will not tested and may not work" << std::endl;
+    this->post_process_new(infered.get()->at(0).data(), confidenceThresh, num_classes,
+                                     input_image_height, input_image_width,
+                                      bboxes, scores, classIndices, batch_ind, 25200);
   }
 
   std::vector<uint64_t> after_nms_indices;
@@ -232,6 +244,48 @@ py::tuple Yolov7::postprocess(const v7_ptr_wrapper<std::vector<std::vector<float
     after_nms_scores.emplace_back(scores[idx]);
   }
   return py::make_tuple(after_nms_bboxes, after_nms_class_indices, after_nms_scores);
+}
+
+void Yolov7::post_process_new(const float *out_feature_map, const float confidenceThresh,
+                              const int num_classes, const int64_t input_image_height,
+                              const int64_t input_image_width,
+                              std::vector<std::array<float, 4> > &bboxes,
+                              std::vector<float> &scores,
+                              std::vector<uint64_t> &classIndices, const int b, const int64_t num_boxes) 
+{
+
+  //Here, output should be in shape of -1, 25200,classes+4 and should be postprocessed.
+
+  std::vector<float> outputData(out_feature_map + b * (num_classes+4)*num_boxes,
+				out_feature_map + (b + 1) * (num_classes+4)*num_boxes);
+  float tmpScores[num_classes];
+
+  int64_t old_h = input_image_height, old_w = input_image_width;
+  std::array<float, 4> out_box;
+  for (uint64_t i = 0; i <num_boxes; ++i) {
+
+    std::copy(outputData.begin() + (num_classes+4)*i, outputData.begin() + (num_classes+4)*i+4, out_box.begin());
+
+    
+    for (uint64_t k = 0; k < num_classes; ++k) {
+      tmpScores[k] = outputData[(num_classes+4)*i + (4+k)];
+    }
+
+    uint64_t maxIdx = std::distance(tmpScores, std::max_element(tmpScores, tmpScores + num_classes));
+    float &probability = tmpScores[maxIdx]; //*std::max_element(tmpScores, tmpScores + num_classes);
+
+
+    if ((probability < confidenceThresh) or (probability>1) or (probability!=probability))
+    continue;
+    if ((*std::max_element(out_box.begin(), out_box.end())>this->IMG_WIDTH) or (*std::min_element(out_box.begin(), out_box.end())<=0))
+    continue;
+  
+    bboxes.emplace_back(out_box);
+    scores.emplace_back(probability);
+    classIndices.emplace_back(maxIdx);
+  //   for(int j = 0; j < 4; j++)
+  //     std::cout << "bboxes: " << out_box[j] << std::endl;
+  }
 }
 
 void Yolov7::post_process_feature_map(const float *out_feature_map, const float confidenceThresh,

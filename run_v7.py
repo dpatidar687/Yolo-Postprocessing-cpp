@@ -17,14 +17,13 @@ model_path = "/docker/models/person_head.tiny_yolov7/v1/onnx/best.onnx"
 img_path = "/docker/deepak/image/image3.jpg"
 img_path = "/docker/deepak/image/person_standing.webp"
 
-# video_path = "/docker/deepak/side _camera_office.mp4"
-
+# model_path = "/docker/python_app/best.onnx"
 
 start_time =  time.time()
 batch_size = 1
 nms_threshold = 0.45
 number_of_classes = 2
-confidence = 0.1
+confidence = 0.25
 provider='gpu'
 
 anchors = [[116, 90, 156, 198, 373, 326],
@@ -94,27 +93,27 @@ while True:
      
     post_start_time = time.time()
     list_of_boxes = v7_object.postprocess_batch(feature_map_ptr, confidence , nms_threshold , full_image.shape[0] , full_image.shape[1])
-    # print("post time ",(time.time() - post_start_time)*1000)
+    print("post time ",(time.time() - post_start_time)*1000)
    
-    # for k in range(batch_size):
-    #     batch_index = k
-    #     full_image = batch_list[k]
+    for k in range(batch_size):
+        batch_index = k
+        full_image = batch_list[k]
         
-    #     boxes = list_of_boxes[k][0]
-    #     cls = list_of_boxes[k][1]
-    #     score = list_of_boxes[k][2]
-    #     print(k, len(boxes))
-    #     for i in range(len(boxes)) :
-    #         x1 = boxes[i][0]
-    #         y1 = boxes[i][1]
-    #         x2 = boxes[i][2]
-    #         y2 = boxes[i][3]
-    #         print(x1, y1, x2, y2, cls[i], score[i])
-    #         cv2.rectangle(full_image, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0,0), 3)
-    #     cv2.imwrite('/docker/deepak/image/v7_output.jpg', full_image)
-    #     out.write(full_image)
-    # print("entire time ",time.time() - start_time)
-    
+        boxes = list_of_boxes[k][0]
+        cls = list_of_boxes[k][1]
+        score = list_of_boxes[k][2]
+        print(k, len(boxes))
+        for i in range(len(boxes)) :
+            x1 = boxes[i][0]
+            y1 = boxes[i][1]
+            x2 = boxes[i][2]
+            y2 = boxes[i][3]
+            print(x1, y1, x2, y2, cls[i], score[i])
+            cv2.rectangle(full_image, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0,0), 3)
+        cv2.imwrite('/docker/deepak/image/v7_output.jpg', full_image)
+        # out.write(full_image)
+    print("entire time ",time.time() - start_time)
+    exit()
      
     end_time_batch = time.time()
     print("overall_time " , (end_time_batch - start_batch_time)*1000 )
