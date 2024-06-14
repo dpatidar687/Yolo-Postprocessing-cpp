@@ -76,7 +76,6 @@ Yolov3::Yolov3(int number_of_classes, std::vector<std::vector<float> > anchors, 
 
   this->dst = new float[this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_WIDTH *
                         this->IMG_HEIGHT];
-
 }
 
 float Yolov3::sigmoid(float x) const
@@ -96,10 +95,10 @@ cv::Mat Yolov3::numpyArrayToMat(py::array_t<uchar> arr)
   return mat;
 }
 
-float * Yolov3::preprocess_batch(py::list &batch)
+py::array Yolov3::preprocess_batch(py::list &batch)
 {
   // auto start = std::chrono::high_resolution_clock::now();
-  std::cout << &batch << endl;
+  // std::cout << &batch << endl;
   for (int64_t b = 0; b < batch.size(); ++b)
   {
     py::array_t<uchar> np_array = batch[b].cast<py::array_t<uchar> >();
@@ -117,11 +116,10 @@ float * Yolov3::preprocess_batch(py::list &batch)
   // std::cout << "Elapsed Time in preprocessing : " << elapsed.count() << " seconds" << std::endl;
   // auto capsule = py::capsule(dst, [](void *dst) { delete reinterpret_cast<float*>(dst); });
   // auto py_arr_new = py::array(this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_WIDTH * this->IMG_HEIGHT, dst, capsule);
-  
-
-  return dst;
-
-  // return dst;
+  auto capsule = py::capsule(dst, [](void *dst) { delete reinterpret_cast<float*>(dst); });
+  capsule.release();
+  py::array img_array = py::array(this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_WIDTH * this->IMG_HEIGHT, dst, capsule);
+  return img_array;
 }
 
 inline void Yolov3::preprocess(const unsigned char *src, const int64_t b)
@@ -136,8 +134,6 @@ inline void Yolov3::preprocess(const unsigned char *src, const int64_t b)
         this->dst[b * this->IMG_CHANNEL * this->IMG_WIDTH * this->IMG_HEIGHT +
                   c * this->IMG_HEIGHT * this->IMG_WIDTH + i * this->IMG_WIDTH + j] =
             src[i * this->IMG_WIDTH * this->IMG_CHANNEL + j * this->IMG_CHANNEL + c] / 255.0;
-
-        
       }
     }
   }
@@ -146,13 +142,23 @@ inline void Yolov3::preprocess(const unsigned char *src, const int64_t b)
   // std::cout << "Elapsed Time in loop of pre only : " << elapsed.count() << " seconds" << std::endl;
 }
 
-py::list Yolov3::detect(ptr_wrapper<float> input_tensor_ptr)
-{
+py::list Yolov3::detect(py::array &input_array)
+{ 
+  // std::cout<< &input_array << std::endl;
 
-  auto start = std::chrono::high_resolution_clock::now();
-  auto inputOnnxTensor = Ort::Value::CreateTensor<float>(this->info,
-                                                         input_tensor_ptr.get(), this->inputTensorSize,
+  // auto start = std::chrono::high_resolution_clock::now();
+
+    py::buffer_info buf = input_array.request();
+
+    float* ptr = static_cast<float*>(buf.ptr);
+    float* const_ptr = const_cast< float*>(ptr);
+  
+    auto inputOnnxTensor = Ort::Value::CreateTensor<float>(this->info,
+                                                         const_ptr, this->inputTensorSize,
                                                          this->inputShape.data(), this->inputShape.size());
+  // auto inputOnnxTensor = Ort::Value::CreateTensor<float>(this->info,
+  //                                                        input_tensor_ptr.get(), this->inputTensorSize,
+  //                                                        this->inputShape.data(), this->inputShape.size());
   const char *names_of_input[] = {input_name.data()};
   std::vector<const char *> names_of_outputs_ptr;
   for (const auto &str : output_names)
@@ -166,33 +172,25 @@ py::list Yolov3::detect(ptr_wrapper<float> input_tensor_ptr)
                                     names_of_input,
                                     &inputOnnxTensor, this->input_count,
                                     names_of_outputs_cstr, this->output_count);
-
-  inference_output.clear();
-  inference_output.reserve(outputValues.size());
-
-  pylist = py::list();
+  py::list pylist = py::list();
 
   for (size_t i = 0; i < outputValues.size(); ++i)
   {
 
-    // float* a = (outputValues[i].GetTensorMutableData<float>(), outputValues[i].GetTensorMutableData<float>() +
-    //                                                        outputValues[i].GetTensorTypeAndShapeInfo().GetElementCount())
-    float * a = outputValues[i].GetTensorMutableData<float>();
+    float *a = outputValues[i].GetTensorMutableData<float>();
 
-    auto capsule = py::capsule(a, [](void *a) { delete reinterpret_cast<float*>(a); });
+    auto capsule = py::capsule(a, [](void *a) { delete reinterpret_cast<float *>(a); });
     auto py_arr = py::array(outputValues[i].GetTensorTypeAndShapeInfo().GetElementCount(), a, capsule);
 
-    pylist.append(py_arr);
+    pylist.attr("append")(py_arr);
     py_arr.release();
     capsule.release();
-
-    inference_output.emplace_back(
-        a, a+outputValues[i].GetTensorTypeAndShapeInfo().GetElementCount());
   }
 
-  auto finish = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double, std::milli> elapsed = finish - start;
-  std::cout << "Elapsed Time in inference : " << elapsed.count() << " seconds" << std::endl;
+  // auto finish = std::chrono::high_resolution_clock::now();
+  // std::chrono::duration<double, std::milli> elapsed = finish - start;
+  // std::cout << "Elapsed Time in inference : " << elapsed.count() << " seconds" << std::endl;
+  std::cout << &pylist << std::endl;
   return pylist;
 }
 
@@ -222,7 +220,6 @@ py::list Yolov3::postprocess_batch(py::list &infered,
   return processed_result_vector;
 }
 
-// std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float>>
 py::tuple Yolov3::postprocess(py::list &infered,
                               const float confidenceThresh, const float nms_threshold, const uint16_t num_classes,
                               const int64_t input_image_height, const int64_t input_image_width,
@@ -232,13 +229,20 @@ py::tuple Yolov3::postprocess(py::list &infered,
   std::vector<std::array<float, 4> > bboxes;
   std::vector<float> scores;
   std::vector<uint64_t> classIndices;
-  // std::cout << len(infered) ;
-  
+  // std::cout << "len of infered pylist : " << len(infered) << std::endl;
+  // std::cout << "len of infered 0 : " << py::len(infered[0]) << std::endl;
+  // std::cout << "len of infered 1 : " << py::len(infered[1]) << std::endl;
+
   for (int i = 0; i < len(infered); i++)
   {
-  //  const float* address = py::cast<float*>(pylist[i]);
 
-    this->post_process_feature_map(infered[i], confidenceThresh, num_classes,
+    py::array_t<float> array = infered[i].cast<py::array_t<float> >();
+    py::buffer_info buf = array.request();
+    std::vector<float> vec(static_cast<float *>(buf.ptr), static_cast<float *>(buf.ptr) + buf.size);
+
+    // std::cout << "Array " << i << " has shape (" << buf.shape[0] << ")" << std::endl;
+
+    this->post_process_feature_map(vec.data(), confidenceThresh, num_classes,
                                    input_image_height, input_image_width, 32 / pow(2, i),
                                    this->ANCHORS[i], this->NUM_ANCHORS[i], bboxes, scores,
                                    classIndices, batch_ind);

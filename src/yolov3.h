@@ -80,25 +80,27 @@ private:
     float confidence;
     float nms_threshold;
     std::string model;
-    py::array py_arr_new;
-    py::capsule capsule;
-    py::list pylist;
 
+
+    // py::array py_arr_new;
+    // py::capsule capsule;
+    // py::array img_array;
 
 public:
-    std::vector<std::vector<float> > inference_output;
+    // std::vector<std::vector<float> > inference_output;
     Yolov3(int number_of_classes, std::vector<std::vector<float> > anchors, const std::string &model_path,
            int batch_size, std::string provider);
 
-    float * preprocess_batch(py::list &batch);
 
     inline void preprocess(const unsigned char *src, const int64_t b);
 
     float sigmoid(float x) const;
 
-    py::list detect(ptr_wrapper<float> input_tensor_ptr);
-    // void detect(py::array input_tensor_array);
+    
+    py::list detect(py::array &input_tensor_array);
 
+    py::array preprocess_batch(py::list &batch);
+    // py::list detect(ptr_wrapper<float> input_tensor_ptr);
 
 
     void post_process_feature_map(const float *out_feature_map, const float confidenceThresh,
@@ -118,6 +120,7 @@ public:
                               const std::vector<float> &scores,
                               const float overlapThresh = 0.45,
                               uint64_t topK = std::numeric_limits<uint64_t>::max());
+        // float * preprocess_batch(py::list &batch);
 
     // py::list postprocess_batch(const ptr_wrapper<std::vector<std::vector<float> > > &infered,
     //                            const float confidenceThresh, const float nms_threshold,
@@ -128,8 +131,6 @@ public:
     //                       const float confidenceThresh, const float nms_threshold, const uint16_t num_classes,
     //                       const int64_t input_image_height, const int64_t input_image_width,
     //                       const int64_t batch_ind);
-
-
 
     // void post_process_feature_map(py::list out_feature_map, const float confidenceThresh,
     //                               const int num_classes, const int64_t input_image_height,
@@ -147,29 +148,29 @@ public:
                                const float confidenceThresh, const float nms_threshold,
                                const int64_t input_image_height, const int64_t input_image_width);
 
-    py::array get_numpy_array_img()
-    {
+    // py::array get_numpy_array_img()
+    // {
         
-        auto capsule = py::capsule(dst, [](void *dst) { delete reinterpret_cast<float*>(dst); });
-        this->py_arr_new.release();
-        capsule.release();
-        this->py_arr_new = py::array(this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_WIDTH * this->IMG_HEIGHT, dst, capsule);
-        return this->py_arr_new;
-    }
+    //     auto capsule = py::capsule(dst, [](void *dst) { delete reinterpret_cast<float*>(dst); });
+    //     this->py_arr_new.release();
+    //     capsule.release();
+    //     this->py_arr_new = py::array(this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_WIDTH * this->IMG_HEIGHT, dst, capsule);
+    //     return this->py_arr_new;
+    // }
 
-    size_t get_size_img()
-    {
-        return IMG_WIDTH * IMG_HEIGHT * IMG_CHANNEL * BATCH_SIZE;
-    }
+    // size_t get_size_img()
+    // {
+    //     return IMG_WIDTH * IMG_HEIGHT * IMG_CHANNEL * BATCH_SIZE;
+    // }
 
-    std::vector<std::vector<float> > get_raw_inference_output()
-    {
-        return inference_output;
-    }
-    size_t get_size_inference_output()
-    {
-        return inference_output.size();
-    }
+    // std::vector<std::vector<float> > get_raw_inference_output()
+    // {
+    //     return inference_output;
+    // }
+    // size_t get_size_inference_output()
+    // {
+    //     return inference_output.size();
+    // }
 
     ~Yolov3()
     {
@@ -177,7 +178,7 @@ public:
         delete[] this->dst;
     };
     cv::Mat numpyArrayToMat(py::array_t<uchar> arr);
-    ptr_wrapper<float> get_img_ptr(void) { return this->dst; }
+    // ptr_wrapper<float> get_img_ptr(void) { return this->dst; }
 
     // ptr_wrapper<std::vector<std::vector<float> > > get_inference_output_ptr(void) { 
     //     // return &this->inference_output; 
@@ -193,8 +194,8 @@ public:
     //     }
 
 
-    ptr_wrapper<std::vector<std::vector<float> > > get_inference_output_ptr(void) { 
-        return &this->inference_output;
+    // ptr_wrapper<std::vector<std::vector<float> > > get_inference_output_ptr(void) { 
+    //     return &this->inference_output;
         
-        }
+    //     }
 };

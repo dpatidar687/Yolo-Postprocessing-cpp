@@ -59,37 +59,27 @@ while True:
     ret, full_image = cap.read()
     if ret == False:
         break
-    full_image = cv2.imread(img_path)
+    # full_image = cv2.imread(img_path)
     batch_list = []
     for i in range(batch_size):
         batch_list.append(full_image)
 
-    # print(hex(id(batch_list)))
    
     start_batch_time = time.time()
-
-    v3_object.preprocess_batch(batch_list)
-    preprocessed_img_ptr = v3_object.get_img_ptr()
-    x = v3_object.get_numpy_array_img()
-    # print(len(x), type(x))
-    print("preprocess time ",(time.time() - start_batch_time)*1000)
+    preprocessed_img = v3_object.preprocess_batch(batch_list)
+    print(hex(id(preprocessed_img)))
+    print("preprocess time in py file ",(time.time() - start_batch_time)*1000)
 
     
-    # pre = v3_object.get_numpy_array_img()
-    # print(len(pre))
-        
     detect_start_time = time.time()   
-    y = v3_object.detect(preprocessed_img_ptr)
-    print(len(y))
-    print(len(y[0]), len(y[1]))
-    # feature_map_ptr = v3_object.get_inference_output_ptr()
+    inferenced_output = v3_object.detect(preprocessed_img)
+    print(hex(id(inferenced_output)))
     print("detection time in python file ", (time.time() - detect_start_time )* 1000)
     
-    # infer_output = v3_object.get_numpy_array_inference_output()
-    
+        
     post_start_time = time.time()
-    list_of_boxes = v3_object.postprocess_batch(y, confidence , nms_threshold , full_image.shape[0] , full_image.shape[1])
-    print("post time ",(time.time() - post_start_time)*1000)
+    list_of_boxes = v3_object.postprocess_batch(inferenced_output, confidence , nms_threshold , full_image.shape[0] , full_image.shape[1])
+    print("post time in py file",(time.time() - post_start_time)*1000)
    
     # for k in range(batch_size):
     #     batch_index = k
@@ -98,7 +88,7 @@ while True:
     #     boxes = list_of_boxes[k][0]
     #     cls = list_of_boxes[k][1]
     #     score = list_of_boxes[k][2]
-    #     print(k, len(boxes))
+    #     # print(k, len(boxes))
     #     for i in range(len(boxes)) :
     #         x1 = boxes[i][0]
     #         y1 = boxes[i][1]
@@ -106,12 +96,11 @@ while True:
     #         y2 = boxes[i][3]
     #         print(x1, y1, x2, y2, cls[i], score[i])
     #         cv2.rectangle(full_image, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0,0), 3)
-    #     cv2.imwrite('/docker/deepak/image/v3_output.jpg', full_image)
+    #     # cv2.imwrite('/docker/deepak/image/v3_output.jpg', full_image)
     #     # out.write(full_image)
      
-    end_time_batch = time.time()
-    print("overall_time ", (end_time_batch - start_batch_time)*1000)
-    print("Batch_FPS ", batch_size/(end_time_batch - start_batch_time))
+    print("overall_time in py file", (time.time() - start_batch_time)*1000)
+    print("Batch_FPS in py file ", batch_size/(time.time() - start_batch_time))
     print("------------------------------------------------------------------------------------")
 cap.release()
 out.release()
