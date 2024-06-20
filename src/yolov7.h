@@ -73,6 +73,7 @@ class Yolov7
     size_t output_count;
     size_t inputTensorSize;
     std::vector<int64_t> inputShape;
+    std::vector<std::vector<int64_t>> outputShape;
 
     std::vector<std::string> output_names;
     std::vector<std::string> input_names;
@@ -81,6 +82,13 @@ class Yolov7
     float nms_threshold;
     std::string model;
 
+
+    const char *const *names_of_outputs_cstr;
+    std::vector<const char *> names_of_outputs_ptr;
+
+    const char *const *names_of_inputs_cstr;
+    std::vector<const char *> names_of_inputs_ptr;
+
 public:
     std::vector<std::vector<float> > inference_output;
     Yolov7(int number_of_classes, std::vector<std::vector<float> > anchors, const std::string &model_path,
@@ -88,15 +96,15 @@ public:
 
     float sigmoid(float x) const;
 
-    float *preprocess_batch(py::list &batch);
+    py::array preprocess_batch(py::list &batch);
 
     inline void preprocess(const unsigned char *src, const int64_t b);
 
     cv::Mat numpyArrayToMat(py::array_t<uchar> arr);
 
-    void detect(v7_ptr_wrapper<float> input_tensor_ptr);
+    py::list detect(py::array &input_tensor_array);
 
-    py::tuple postprocess(const v7_ptr_wrapper<std::vector<std::vector<float> > > &infered,
+    py::tuple postprocess(py::list &infered,
                           const float confidenceThresh, const float nms_threshold, const uint16_t num_classes,
                           const int64_t input_image_height, const int64_t input_image_width,
                           const int64_t batch_ind);
@@ -127,7 +135,7 @@ public:
                               const float overlapThresh = 0.45,
                               uint64_t topK = std::numeric_limits<uint64_t>::max());
 
-    py::list postprocess_batch(const v7_ptr_wrapper<std::vector<std::vector<float> > > &infered,
+    py::list postprocess_batch(py::list &infered,
                                const float confidenceThresh, const float nms_threshold,
                                const int64_t input_image_height, const int64_t input_image_width);
 

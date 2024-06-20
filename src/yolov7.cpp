@@ -50,15 +50,22 @@ Yolov7::Yolov7(int number_of_classes, std::vector<std::vector<float> > anchors, 
   this->input_count = session_->GetInputCount();
   this->output_count = session_->GetOutputCount();
 
-  this->input_name = session_->GetInputNameAllocated(0, allocator_).get();
-  std::cout << "Input name: " << input_name << std::endl;
+  // this->input_name = session_->GetInputNameAllocated(0, allocator_).get();
+  // std::cout << "Input name: " << input_name << std::endl;
   this->inputShape = session_->GetInputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
   std::cout << "Input shape: " << inputShape[0] << " " << inputShape[1] << " " << inputShape[2] << " " << inputShape[3] << std::endl;
-  for (int i = 0; i < this->output_count; ++i)
-  {
-    output_names.push_back(session_->GetOutputNameAllocated(i, allocator_).get());
-    std::cout << "Output name " << i << ": " << output_names[i] << std::endl;
-  }
+  for (int i = 0; i < this->input_count; ++i)
+    {
+      input_names.push_back(session_->GetInputNameAllocated(i, allocator_).get());
+      std::cout << "Input name " << i << ": " << input_names[i] << std::endl;
+    }
+
+    for (int i = 0; i < this->output_count; ++i)
+    {
+      output_names.push_back(session_->GetOutputNameAllocated(i, allocator_).get());
+      std::cout << "Output name " << i << ": " << output_names[i] << std::endl;
+    }
+  std::cout << "Created the session " << std::endl;
   std::cout << "Created the session " << std::endl;
 
   this->IMG_HEIGHT = inputShape[2];
@@ -74,7 +81,23 @@ Yolov7::Yolov7(int number_of_classes, std::vector<std::vector<float> > anchors, 
 
   this->dst = new float[this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_WIDTH *
                         this->IMG_HEIGHT];
+
+
+   for (const auto &str : input_names)
+  {
+    names_of_inputs_ptr.push_back(str.c_str());
+  }
+  this->names_of_inputs_cstr = names_of_inputs_ptr.data();
+
+  for (const auto &str : output_names)
+  {
+    names_of_outputs_ptr.push_back(str.c_str());
+  }
+
+  this->names_of_outputs_cstr = names_of_outputs_ptr.data();
 }
+  
+
 cv::Mat Yolov7::numpyArrayToMat(py::array_t<uchar> arr)
 {
   auto buffer = arr.request();
@@ -92,7 +115,7 @@ float Yolov7::sigmoid(float x) const
   return 1.0 / (1.0 + std::exp(-x));
 }
 
-float *Yolov7::preprocess_batch(py::list &batch)
+py::array Yolov7::preprocess_batch(py::list &batch)
 {
   // auto start_batch = std::chrono::high_resolution_clock::now();
   for (int64_t b = 0; b < batch.size(); ++b)
@@ -109,7 +132,22 @@ float *Yolov7::preprocess_batch(py::list &batch)
   // auto finish = std::chrono::high_resolution_clock::now();
   // std::chrono::duration<double, std::milli> elapsed = finish - start_batch;
   // std::cout << "Elapsed Time in preprocessing : " << elapsed.count() << " mili seconds" << std::endl;
-  return dst;
+  // return dst;
+
+  // auto start_returnin_batch = std::chrono::high_resolution_clock::now();
+
+  auto capsule = py::capsule(dst, [](void *dst)
+                             { delete reinterpret_cast<float *>(dst); });
+                             
+ 
+  py::array img_array = py::array(this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_WIDTH * this->IMG_HEIGHT, dst, capsule);
+     capsule.release();
+
+
+  //  auto fin = std::chrono::high_resolution_clock::now();
+  // std::chrono::duration<double, std::milli> elp = fin - start_returnin_batch;
+  // std::cout << "Elapsed Time in preprocessing : " << elp.count() << " mili seconds" << std::endl;
+  return img_array;
 }
 
 inline void Yolov7::preprocess(const unsigned char *src, const int64_t b)
@@ -133,45 +171,46 @@ inline void Yolov7::preprocess(const unsigned char *src, const int64_t b)
   // std::cout << "Elapsed Time in loop of pre only : " << elapsed.count() << " seconds" << std::endl;
 }
 
-void Yolov7::detect(v7_ptr_wrapper<float> input_tensor_ptr)
+py::list Yolov7::detect(py::array &input_array)
 {
 
+   py::buffer_info buf = input_array.request();
+
+  float *ptr = static_cast<float *>(buf.ptr);
+  float *const_ptr = const_cast<float *>(ptr);
   // auto start = std::chrono::high_resolution_clock::now();
   auto inputOnnxTensor = Ort::Value::CreateTensor<float>(this->info,
-                                                         input_tensor_ptr.get(), this->inputTensorSize,
+                                                         const_ptr, this->inputTensorSize,
                                                          this->inputShape.data(), this->inputShape.size());
-
-  const char *names_of_input[] = {input_name.data()};
-  std::vector<const char *> names_of_outputs_ptr;
-  for (const auto &str : output_names)
-  {
-    names_of_outputs_ptr.push_back(str.c_str());
-  }
-
-  const char *const *names_of_outputs_cstr = names_of_outputs_ptr.data();
-
   auto outputValues = session_->Run(this->runOptions,
-                                    names_of_input,
+                                    names_of_inputs_cstr,
                                     &inputOnnxTensor, this->input_count,
                                     names_of_outputs_cstr, this->output_count);
 
-  inference_output.clear();
-  inference_output.reserve(outputValues.size());
-
+  py::list pylist = py::list();
   for (int i = outputValues.size() - 1; i >= 0; i--)
   {
+    float *a = outputValues[i].GetTensorMutableData<float>();
 
-    inference_output.emplace_back(
-        outputValues[i].GetTensorMutableData<float>(), outputValues[i].GetTensorMutableData<float>() +
-                                                           outputValues[i].GetTensorTypeAndShapeInfo().GetElementCount());
+    auto capsule = py::capsule(a, [](void *a)
+                               { delete reinterpret_cast<float *>(a); });
+    auto py_arr = py::array(outputValues[i].GetTensorTypeAndShapeInfo().GetElementCount(), a, capsule);
+
+    pylist.attr("append")(py_arr);
+    py_arr.release();
+    capsule.release();
+    // inference_output.emplace_back(
+    //     outputValues[i].GetTensorMutableData<float>(), outputValues[i].GetTensorMutableData<float>() +
+    //                                                        outputValues[i].GetTensorTypeAndShapeInfo().GetElementCount());
   }
 
+  return pylist;
   // auto finish = std::chrono::high_resolution_clock::now();
   // std::chrono::duration<double, std::milli> elapsed = finish - start;
   // std::cout << "Elapsed Time in inference : " << elapsed.count() << " seconds" << std::endl;
 }
 
-py::list Yolov7::postprocess_batch(const v7_ptr_wrapper<std::vector<std::vector<float> > > &infered,
+py::list Yolov7::postprocess_batch(py::list &infered,
                                    const float confidenceThresh, const float nms_threshold,
                                    const int64_t input_image_height, const int64_t input_image_width)
 {
@@ -195,7 +234,7 @@ py::list Yolov7::postprocess_batch(const v7_ptr_wrapper<std::vector<std::vector<
 }
 
 // std::tuple<std::vector<std::array<float, 4> >, std::vector<uint64_t>, std::vector<float>>
-py::tuple Yolov7::postprocess(const v7_ptr_wrapper<std::vector<std::vector<float> > > &infered,
+py::tuple Yolov7::postprocess(py::list &infered,
                               const float confidenceThresh, const float nms_threshold, const uint16_t num_classes,
                               const int64_t input_image_height, const int64_t input_image_width,
                               const int64_t batch_ind)
@@ -205,43 +244,43 @@ py::tuple Yolov7::postprocess(const v7_ptr_wrapper<std::vector<std::vector<float
   std::vector<float> scores;
   std::vector<uint64_t> classIndices;
 
-  std::cout << "size of infered : " << infered.get()->size() << std::endl;
-  if (infered.get()->size() > 1)
+ if(len(infered) > 1) {
+  for (int i = 0; i < len(infered); i++)
   {
-    for (int i = 0; i < infered.get()->size(); i++)
-    {
-      this->post_process_feature_map(infered.get()->at(i).data(), confidenceThresh, num_classes,
-                                     input_image_height, input_image_width, 32 / pow(2, i),
-                                     this->ANCHORS[i], this->NUM_ANCHORS[i], bboxes, scores,
-                                     classIndices, batch_ind);
-    }
+
+    py::array_t<float> array = infered[i].cast<py::array_t<float>>();
+    py::buffer_info buf = array.request();
+    std::vector<float> vec(static_cast<float *>(buf.ptr), static_cast<float *>(buf.ptr) + buf.size);
+
+    this->post_process_feature_map(vec.data(), confidenceThresh, num_classes,
+                                   input_image_height, input_image_width, 32 / pow(2, i),
+                                   this->ANCHORS[i], this->NUM_ANCHORS[i], bboxes, scores,
+                                   classIndices, batch_ind);
   }
+}
   else
   {
     // const int64_t boxes = infered.get()->at(0).data()[1];
     std::cout << "Warning there is only one output the post process will not tested and may not work" << std::endl;
-    this->post_process_new(infered.get()->at(0).data(), confidenceThresh, num_classes,
-                                     input_image_height, input_image_width,
-                                      bboxes, scores, classIndices, batch_ind, 25200);
+    // this->post_process_new(infered.get()->at(0).data(), confidenceThresh, num_classes,
+    //                                  input_image_height, input_image_width,
+    //                                   bboxes, scores, classIndices, batch_ind, 25200);
   }
 
   std::vector<uint64_t> after_nms_indices;
 
   after_nms_indices = nms(bboxes, scores, nms_threshold);
 
-  std::vector<std::array<float, 4> > after_nms_bboxes;
-  std::vector<uint64_t> after_nms_class_indices;
-  std::vector<float> after_nms_scores;
+  py::list after_nms_bboxes;
+  py::list after_nms_class_indices;
+  py::list after_nms_scores;
 
-  after_nms_bboxes.reserve(after_nms_indices.size());
-  after_nms_class_indices.reserve(after_nms_indices.size());
-  after_nms_scores.reserve(after_nms_indices.size());
 
   for (const auto idx : after_nms_indices)
   {
-    after_nms_bboxes.emplace_back(bboxes[idx]);
-    after_nms_class_indices.emplace_back(classIndices[idx]);
-    after_nms_scores.emplace_back(scores[idx]);
+    after_nms_bboxes.append(bboxes[idx]);
+    after_nms_class_indices.append(classIndices[idx]);
+    after_nms_scores.append(scores[idx]);
   }
   return py::make_tuple(after_nms_bboxes, after_nms_class_indices, after_nms_scores);
 }

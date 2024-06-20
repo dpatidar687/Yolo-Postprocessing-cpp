@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 set(CMAKE_CXX_STANDARD 17)
 project(your_app)
 
-set(ONNXRUNTIME_ROOTDIR "${CMAKE_CURRENT_SOURCE_DIR}/onnxruntime-linux-x64-1.12.0")
+# set(ONNXRUNTIME_ROOTDIR "${CMAKE_CURRENT_SOURCE_DIR}/onnxruntime-linux-x64-1.12.0")
 
 #set(ONNXRUNTIME_ROOTDIR "${CMAKE_CURRENT_SOURCE_DIR}/libonnxruntime.so")
 # include_directories("${ONNXRUNTIME_ROOTDIR}/include"                           # Pre-built package
@@ -54,11 +54,11 @@ include_directories(${PROJECT_NAME} /usr/local/include/onnxruntime)
 
  
 
-find_package(GSL REQUIRED)
-include_directories(${GSL_INCLUDE_DIRS})
-include_directories(/usr/include/gsl/gsl)
+# find_package(GSL REQUIRED)
+# include_directories(${GSL_INCLUDE_DIRS})
+# include_directories(/usr/include/gsl/gsl)
 
-target_link_libraries(run_yolo_onnx PRIVATE ${ONNX_RUNTIME_LIB} ${OpenCV_LIBS}  ${GSL_LIBRARIES})
+target_link_libraries(run_yolo_onnx PRIVATE ${ONNX_RUNTIME_LIB} ${OpenCV_LIBS}  )
 
 # target_compile_definitions(${PROJECT_NAME} PRIVATE -DENABLE_ORT)
 # target_link_libraries(${PROJECT_NAME} PUBLIC ${ONNX_RUNTIME_LIB})

@@ -76,15 +76,20 @@ private:
     size_t inputTensorSize;
     std::vector<int64_t> inputShape;
     std::vector<std::string> output_names;
+    std::vector<std::string> input_names;
 
     float confidence;
     float nms_threshold;
     std::string model;
 
 
-    // py::array py_arr_new;
-    // py::capsule capsule;
-    // py::array img_array;
+
+    const char *const *names_of_outputs_cstr;
+    std::vector<const char *> names_of_outputs_ptr;
+
+    const char *const *names_of_inputs_cstr;
+    std::vector<const char *> names_of_inputs_ptr;
+
 
 public:
     // std::vector<std::vector<float> > inference_output;

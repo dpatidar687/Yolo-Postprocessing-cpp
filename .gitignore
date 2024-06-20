@@ -7,3 +7,4 @@ image/
 models/
 onnxruntime/
 opencv/
+build_v1/
