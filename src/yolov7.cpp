@@ -14,12 +14,17 @@ namespace
   }
 }
 
-Yolov7::Yolov7(int number_of_classes, std::vector<std::vector<float> > anchors, const std::string &model_path, int batch_size, std::string provider)
+Yolov7::Yolov7(int number_of_classes, std::vector<std::vector<float> > anchors, const std::string &model_path, int batch_size, std::string provider, 
+bool letter_box , std::vector<float> letter_box_color)
 {
   this->ANCHORS = anchors;
   this->BATCH_SIZE = batch_size;
   this->model_path_ = model_path;
   this->provider = provider;
+
+  this->use_letterbox = letter_box;
+  this->letter_box_color = letter_box_color;
+
 
   std::cout << model_path << std::endl;
   std::string _name = "onnx_runtime" + std::to_string(rand());
@@ -114,7 +119,22 @@ float Yolov7::sigmoid(float x) const
 {
   return 1.0 / (1.0 + std::exp(-x));
 }
+cv::Mat Yolov7::create_letterbox(const cv::Mat &frame) const {
+  std::cout << "using letterboxing be aware " << std::endl;
+  int origW = frame.cols, origH = frame.rows;
+  std::vector<float> originImageSize{static_cast<float>(origH), static_cast<float>(origW)};
+  float scale = std::min<float>(1.0 * this->IMG_WIDTH / origW, 1.0 * this->IMG_HEIGHT / origH);
+  cv::Mat scaled_image;
+  cv::resize(frame, scaled_image, cv::Size(), scale, scale, cv::INTER_CUBIC);
 
+  cv::Mat processed_image(this->IMG_HEIGHT, this->IMG_WIDTH, CV_8UC3, cv::Scalar(this->letter_box_color[0]  
+  , this->letter_box_color[1], this->letter_box_color[2]));
+  std::cout << this->letter_box_color[0] << std::endl;
+  scaled_image.copyTo(processed_image(cv::Rect((this->IMG_WIDTH - scaled_image.cols) / 2,
+                                               (this->IMG_HEIGHT - scaled_image.rows) / 2,
+                                               scaled_image.cols, scaled_image.rows)));
+  return processed_image;
+}
 py::array Yolov7::preprocess_batch(py::list &batch)
 {
   // auto start_batch = std::chrono::high_resolution_clock::now();
@@ -122,11 +142,25 @@ py::array Yolov7::preprocess_batch(py::list &batch)
   {
     py::array_t<uchar> np_array = batch[b].cast<py::array_t<uchar> >();
     cv::Mat img = numpyArrayToMat(np_array);
-    cv::Mat temp;
-    cv::resize(img, temp, cv::Size(this->IMG_WIDTH, this->IMG_HEIGHT), 0, 0,
-               cv::INTER_LINEAR);
-    cv::cvtColor(temp, temp, cv::COLOR_BGR2RGB);
-    this->preprocess(temp.data, b);
+    // cv::Mat temp;
+
+    if (this->use_letterbox) {
+      std::cout << "using letterboxing be aware " << std::endl;
+      const unsigned char *src = this->create_letterbox(img).data;
+      this->preprocess(src, b);
+    }
+    else {
+      cv::Mat temp;
+      cv::resize(img, temp, cv::Size(this->IMG_WIDTH, this->IMG_HEIGHT), 0, 0, cv::INTER_LINEAR);
+      cv::cvtColor(temp, temp, cv::COLOR_BGR2RGB);
+      this->preprocess(temp.data, b);
+    }
+
+
+    // cv::resize(img, temp, cv::Size(this->IMG_WIDTH, this->IMG_HEIGHT), 0, 0,
+    //            cv::INTER_LINEAR);
+    // cv::cvtColor(temp, temp, cv::COLOR_BGR2RGB);
+    // this->preprocess(temp.data, b);
   }
 
   // auto finish = std::chrono::high_resolution_clock::now();

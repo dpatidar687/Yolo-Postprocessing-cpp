@@ -1,6 +1,4 @@
-#include <iostream>
 using namespace std;
-#include <iostream>
 #include <vector>
 #include <chrono>
 #include <ctime>
@@ -8,11 +6,7 @@ using namespace std;
 #include "opencv2/highgui/highgui.hpp"
 #include <typeinfo>
 #include <opencv2/opencv.hpp>
-#include <iostream>
-#include <vector>
 #include <random>
-#include <iostream>
-#include <vector>
 #include <array>
 #include <string>
 #include <opencv2/opencv.hpp>
@@ -22,31 +16,13 @@ using namespace std;
 namespace py = pybind11;
 #include <stdio.h>
 #include <iostream>
-
+#include <../models/model_config.h>
 #include <core/providers/cuda/cuda_provider_options.h>
 #include <core/providers/cpu/cpu_provider_factory.h>
 #include "onnxruntime_cxx_api.h"
 #include <core/session/onnxruntime_c_api.h>
 #include <core/providers/tensorrt/tensorrt_provider_factory.h>
 #include <onnxruntime_c_api.h>
-
-template <class T>
-class v7_ptr_wrapper
-{
-public:
-    v7_ptr_wrapper() : ptr(nullptr) {}
-    v7_ptr_wrapper(T *ptr) : ptr(ptr) {}
-    v7_ptr_wrapper(const v7_ptr_wrapper &other) : ptr(other.ptr) {}
-    T &operator*() const { return *ptr; }
-    T *operator->() const { return ptr; }
-    T *get() const { return ptr; }
-    void destroy() { delete ptr; }
-    T &operator[](std::size_t idx) const { return ptr[idx]; }
-
-private:
-    T *ptr;
-    size_t size;
-};
 
 class Yolov7
 {
@@ -55,6 +31,9 @@ class Yolov7
     int BATCH_SIZE = 1;
     int IMG_CHANNEL;
     float *dst;
+    bool use_letterbox = true;
+    std::vector<float> letter_box_color = {0, 0, 0};
+
     std::vector<std::vector<float> > ANCHORS;
     std::vector<int64_t> NUM_ANCHORS;
     int number_of_classes;
@@ -77,7 +56,6 @@ class Yolov7
 
     std::vector<std::string> output_names;
     std::vector<std::string> input_names;
-
     float confidence;
     float nms_threshold;
     std::string model;
@@ -92,14 +70,14 @@ class Yolov7
 public:
     std::vector<std::vector<float> > inference_output;
     Yolov7(int number_of_classes, std::vector<std::vector<float> > anchors, const std::string &model_path,
-           int batch_size, std::string provider);
+           int batch_size, std::string provider, bool letter_box , std::vector<float> letter_box_color);
 
     float sigmoid(float x) const;
 
     py::array preprocess_batch(py::list &batch);
 
     inline void preprocess(const unsigned char *src, const int64_t b);
-
+    cv::Mat create_letterbox(const cv::Mat &frame) const;
     cv::Mat numpyArrayToMat(py::array_t<uchar> arr);
 
     py::list detect(py::array &input_tensor_array);
@@ -139,30 +117,21 @@ public:
                                const float confidenceThresh, const float nms_threshold,
                                const int64_t input_image_height, const int64_t input_image_width);
 
-    float *get_raw_img()
-    {
-        return dst;
-    }
-
-    size_t get_size_img()
-    {
-        return IMG_WIDTH * IMG_HEIGHT * IMG_CHANNEL * BATCH_SIZE;
-    }
-
-    std::vector<std::vector<float> > get_raw_inference_output()
-    {
-        return inference_output;
-    }
-    size_t get_size_inference_output()
-    {
-        return inference_output.size();
-    }
-
-    v7_ptr_wrapper<float> get_img_ptr(void) { return this->dst; }
-    v7_ptr_wrapper<std::vector<std::vector<float> > > get_inference_output_ptr(void) { return &this->inference_output; }
     ~Yolov7()
     {
         delete session_;
         delete[] this->dst;
     };
+};
+
+class yolobase{
+
+    public:
+        yolobase() = default;
+        yolobase(const mtx::ModelConfig &config){
+             std::cout << "\t Model Path: " << config.get_confidence_threshold() << std::endl;
+             std::cout << "done with the exposeing of yolobase"<< std::endl;
+        }
+        ~yolobase() = default;
+        
 };

@@ -133,7 +133,7 @@ py::array Yolov3::preprocess_batch(py::list &batch)
 
   // auto finish = std::chrono::high_resolution_clock::now();
   // std::chrono::duration<double, std::milli> elapsed = finish - start;
-  // std::cout << "Elapsed Time in preprocessing : " << elapsed.count() << " seconds" << std::endl;
+  // std::cout << "Elapsed Time in preprocessing : " << elapsed.count() << " mili seconds" << std::endl;
 
   auto capsule = py::capsule(dst, [](void *dst)
                              { delete reinterpret_cast<float *>(dst); });
@@ -161,7 +161,7 @@ inline void Yolov3::preprocess(const unsigned char *src, const int64_t b)
   }
   // auto finish = std::chrono::high_resolution_clock::now();
   // std::chrono::duration<double, std::milli> elapsed = finish - start;
-  // std::cout << "Elapsed Time in loop of pre only : " << elapsed.count() << " seconds" << std::endl;
+  // std::cout << "Elapsed Time in loop of pre only : " << elapsed.count() << "mili seconds" << std::endl;
 }
 
 py::list Yolov3::detect(py::array &input_array)
@@ -263,7 +263,7 @@ py::tuple Yolov3::postprocess(py::list &infered,
   py::list after_nms_bboxes;
   py::list after_nms_class_indices;
   py::list after_nms_scores;
-
+  // py::list boxes ;
   // after_nms_bboxes.reserve(after_nms_indices.size());
   // after_nms_class_indices.reserve(after_nms_indices.size());
   // after_nms_scores.reserve(after_nms_indices.size());
@@ -273,6 +273,7 @@ py::tuple Yolov3::postprocess(py::list &infered,
     after_nms_bboxes.append(bboxes[idx]);
     after_nms_class_indices.append(classIndices[idx]);
     after_nms_scores.append(scores[idx]);
+    // boxes.append([bboxes[idx], classIndices[idx], scores[idx]]);
   }
   return py::make_tuple(after_nms_bboxes, after_nms_class_indices, after_nms_scores);
 }
