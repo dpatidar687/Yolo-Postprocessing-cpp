@@ -1,12 +1,12 @@
-
 #include <yolov3.h>
 #include <yolov7.h>
 #include <pybind11/pybind11.h>
 #include <base_classifier.h>
 #include <../models/model_config.h>
+#include <yolobase.h>
 
-
-
+// #include "core/InferenceEngine.h"
+#include "openvino/openvino.hpp"
 PYBIND11_MODULE(run_yolo_onnx, m)
 {
     py::class_<Yolov3>(m, "Yolov3")
@@ -61,11 +61,12 @@ PYBIND11_MODULE(run_yolo_onnx, m)
              py::arg("infer_blob"),
              py::arg("preprocesses"));
 
-    py::class_<yolobase>(m, "yolobase")
+    py::class_<Yolobase>(m, "Yolobase")
         .def(py::init<>())  // Default constructor
-        .def(py::init<const mtx::ModelConfig&>(), py::arg("config")) 
+        .def(py::init<const mtx::ModelConfig&>(), py::arg("config"))
+        .def("preprocess_batch", &Yolobase::preprocess_batch, py::return_value_policy::reference)
+        .def("detect_ov", &Yolobase::detect_ov, py::return_value_policy::reference);
         
-        ;
 
 }
 

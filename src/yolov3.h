@@ -136,54 +136,19 @@ public:
                                const float confidenceThresh, const float nms_threshold,
                                const int64_t input_image_height, const int64_t input_image_width);
 
-    // py::array get_numpy_array_img()
-    // {
-        
-    //     auto capsule = py::capsule(dst, [](void *dst) { delete reinterpret_cast<float*>(dst); });
-    //     this->py_arr_new.release();
-    //     capsule.release();
-    //     this->py_arr_new = py::array(this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_WIDTH * this->IMG_HEIGHT, dst, capsule);
-    //     return this->py_arr_new;
-    // }
-
-    // size_t get_size_img()
-    // {
-    //     return IMG_WIDTH * IMG_HEIGHT * IMG_CHANNEL * BATCH_SIZE;
-    // }
-
-    // std::vector<std::vector<float> > get_raw_inference_output()
-    // {
-    //     return inference_output;
-    // }
-    // size_t get_size_inference_output()
-    // {
-    //     return inference_output.size();
-    // }
-
     ~Yolov3()
     {
         delete session_;
         delete[] this->dst;
     };
     cv::Mat numpyArrayToMat(py::array_t<uchar> arr);
-    // ptr_wrapper<float> get_img_ptr(void) { return this->dst; }
+    
 
-    // ptr_wrapper<std::vector<std::vector<float> > > get_inference_output_ptr(void) { 
-    //     // return &this->inference_output; 
-        
-    //     std::vector<std::vector<float>> vec;
-    //     vec.clear();
-    //     for (const auto& sublist : this->pylist) {
-    //         vec.push_back(py::cast<std::vector<float>>(sublist));
-    //     }
-    //     std::cout<< "In get_infer_out_prt function " << std::endl;       
-    //     return &vec;
-        
-    //     }
+    std::size_t get_current_ns(){
+            auto now = std::chrono::system_clock::now();
+            std::chrono::time_point<std::chrono::system_clock> epoch;
+            std::size_t ms = std::chrono::duration_cast<std::chrono::nanoseconds>(now - epoch).count();
+            return ms;
+        }
 
-
-    // ptr_wrapper<std::vector<std::vector<float> > > get_inference_output_ptr(void) { 
-    //     return &this->inference_output;
-        
-    //     }
 };

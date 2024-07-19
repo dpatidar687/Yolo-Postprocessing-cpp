@@ -1,99 +1,34 @@
 
 import time
-import os
 import build.run_yolo_onnx
-import json
 import numpy as np
 import cv2
-import torch
-import ctypes
 
-def get_preprocessing( model_info):
-    preprocessing_args = {}
-    for input_data in model_info["input_data"]["layers"]:
-        img_size = input_data["shape"]
-        channel_order = "BGR"
-        letterbox = False
-        if "channel_order" in input_data["attribs"]:
-            if input_data["channel_order"] == "RGB":
-                channel_order = "RGB"
-        if "letterbox" in input_data["attribs"]:
-            if input_data["letterbox"]:
-                letterbox = True
-        mean = np.array([0, 0, 0])
-        std = np.array([1, 1, 1])
-        norm = 255
-        if "preprocesses" in input_data.keys():
-            norm = np.array(input_data["preprocesses"]["norm"])
-            mean = np.array(input_data["preprocesses"]["mean"])
-            std = np.array(input_data["preprocesses"]["std"])
-        
-        preprocessing_args.update({input_data["name"]: {"channel_order": channel_order, "img_size": img_size, "norm": norm, "mean": mean, "std": std, "letterbox": letterbox}})
-    return preprocessing_args
-def get_postprocessing(model_info):
-    post_processing_args = {}
-    conf = model_info["model_config"]["conf"]
-    labels = model_info["output_data"]["labels"]
-    for i, layer in enumerate(model_info["output_data"]["layers"]):
-        # stride = self.preprocessing_args[self.input_name[0]]["img_size"][2]/layer["shape"][2]
-        scale = layer["shape"][2]
-        # grid = np.array(np.meshgrid(np.arange(0, scale , 1), np.arange(0, scale , 1))).transpose(1, 2, 0).reshape(1, 1, scale, scale, 2)
-        # grid = grid.astype(np.float32)
-        anchor = np.array(layer["anchors"])
+mc = build.run_yolo_onnx.ModelConfig('/docker/deepak/Yolo-Postprocessing-cpp/spec.json', 'onnx-openvino-cpu',
+                                     1, 0.3, False,'no', {}  )
 
-        nms = model_info["output_data"]["nms"]
-        post_processing_args[layer["name"]] = {"anchors": anchor, "nms": nms, "conf": conf, "labels": labels}
-        
-    
-    return post_processing_args
-
-
-
-model_info = json.load(open("/docker/deepak/Yolo-Postprocessing-cpp/spec.json", "r"))
-model_info.update({"model_config": {"conf": 0.46}})
-preprocessing_args = get_preprocessing(model_info)
-post_processing_args = get_postprocessing(model_info)
-
-# print(preprocessing_args)
-# print(post_processing_args)
-
-yc = build.run_yolo_onnx.yolobase(
-    build.run_yolo_onnx.ModelConfig('/docker/deepak/Yolo-Postprocessing-cpp/spec.json', 'onnx-gpu',
-                                     2, 0.3, False,'no', {}  )
+yc = build.run_yolo_onnx.Yolobase(
+ mc   
 )
-# mc = build.run_yolo_onnx.ModelConfig('/docker/deepak/Yolo-Postprocessing-cpp/spec.json', 'onnx-gpu',
-#                                      2, 0.3, False,'no', {}  )
 
 
 save_path = '/docker/deepak/yolo_onnx_release/image/'
-# video_path = "/docker/deepak/PlatformEdgeCrossing.avi"
-img_path = "/docker/deepak/image/person_standing.webp"
+img_path = "/docker/deepak/image/2_jpg.rf.99922942d0a3d839f3d2cba6fb3716bf.jpg"
 
 
 start_time =  time.time()
 batch_size = 1
-
-
-
-# anchors = {}
-anchors = []
-for i in reversed(post_processing_args):
-    # anchors[i] =  list(post_processing_args[i]['anchors'])
-    anchors.append(list(post_processing_args[i]['anchors']))
-    nms = post_processing_args[i]['nms']
-    number_of_classes = len(post_processing_args[i]['labels'])
-    confidence = post_processing_args[i]['conf']
+number_of_classes = 7
+model_path = "/docker/models/anpr_plate_vehicle_detector.tiny_yolov7/v1/onnx/v7_c_12.onnx"
+letter_box = True
+letter_box_color = [114, 114, 114]
 
 provider='cpu'
 
-# anchors = [[116, 90, 156, 198, 373, 326],
-#          [30, 61, 62, 45, 59, 119],
-#         [10, 13, 16, 30, 33, 23]]
+anchors = [[116, 90, 156, 198, 373, 326],
+         [30, 61, 62, 45, 59, 119],
+        [10, 13, 16, 30, 33, 23]]
 
-model_path = '/docker/models/'+ model_info["onnx_path"]
-letter_box_color = [114, 114, 114]
-letter_box = True
-# std::unordered_map<int, float> classwise_nms_thresh;
 
 
 
@@ -128,21 +63,33 @@ while True:
 
     
     start_batch_time = time.time()
-    preprocessed_img_cpp = v7_object.preprocess_batch(batch_list)  
+    preprocessed_img_cpp = v7_object.preprocess_batch(batch_list) 
+    pre = yc.preprocess_batch(batch_list) 
     print("preprocess time in py file ",(time.time() - start_batch_time)*1000)
 
     
+
     detect_start_time = time.time()   
-    inferenced_output = v7_object.detect(preprocessed_img_cpp)
+    inferenced_output = v7_object.detect(pre)
+    io = yc.detect_ov(preprocessed_img_cpp)
+
+    
+    print(len(inferenced_output), len(io))
+    for i in range(3):
+        print(len(inferenced_output[i]), len(io[i]))
+        
+    print(inferenced_output)
+    print(io)
+
     print("detection time in python file ", (time.time() - detect_start_time )* 1000)
     
         
     post_start_time = time.time()
-    list_of_boxes = v7_object.postprocess_batch(inferenced_output, confidence , nms_threshold , full_image.shape[0] , full_image.shape[1])
+    list_of_boxes = v7_object.postprocess_batch(inferenced_output, 0.5 , 0.45 , full_image.shape[0] , full_image.shape[1])
     print("post time in py file",(time.time() - post_start_time)*1000)
     
-    print(len(list_of_boxes))
-    print(len(batch_list))
+    # print(len(list_of_boxes))
+    # print(len(batch_list))
     
     for k in range(batch_size):
         full_image = batch_list[k]
@@ -159,7 +106,7 @@ while True:
             print(x1, y1, x2, y2, cls[i], score[i])
             cv2.rectangle(full_image, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0,0), 3)
         cv2.imwrite('/docker/deepak/image/v7_output'+str(k)+'.jpg', full_image)
-        out.write(full_image)
+        # out.write(full_image)
      
     print("overall_time in py file", (time.time() - start_batch_time)*1000)
     print("Batch_FPS in py file ", batch_size/(time.time() - start_batch_time))
@@ -169,3 +116,12 @@ while True:
 
 cap.release()
 out.release()
+
+
+
+
+# 256.38555908203125 262.025390625 458.022216796875 636.450927734375 1 0.5106261372566223
+# 256.38555908203125 262.025390625 458.022216796875 636.450927734375 1 0.5106261372566223
+
+# 256.3775939941406 262.0298156738281 458.0533142089844 636.4268188476562 1 0.5103762149810791
+# 256.3775939941406 262.0298156738281 458.0533142089844 636.4268188476562 1 0.5103762149810791

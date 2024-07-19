@@ -12,8 +12,8 @@ model_path = "/docker/deepak/models/yolo_tiny_25_07.onnx"
 # model_path = "/docker/deepak/models/person_head_tinyv3.onnx"
 # save_path = '/docker/deepak/yolo_onnx_release/image/'
 # video_path = "/docker/deepak/PlatformEdgeCrossing.avi"
-# video_path = '/docker/videos/MahaMetro_Data_25_April/Passenger_Crossing_Edge/Edge_Crossing_1_Cam4_0&1.avi'
-video_path = "/docker/videos/Sarita_P4L1_04.Jun.2024.mp4"
+video_path = '/docker/videos/MahaMetro_Data_25_April/Passenger_Crossing_Edge/Edge_Crossing_1_Cam4_0&1.avi'
+# video_path = "/docker/videos/Sarita_P4L1_04.Jun.2024.mp4"
 
 
 # model_path = "/docker/models/common.tiny_yolov3/v1/onnx/yolov3-tiny.onnx"
@@ -21,7 +21,7 @@ video_path = "/docker/videos/Sarita_P4L1_04.Jun.2024.mp4"
 # img_path = "/docker/deepak/image/person_standing.webp"
 # img_path = "/docker/deepak/image/61vMB3QmbWL._AC_UF894,1000_QL80_.jpg"
 
-img_path = "/docker/deepak/image/vlcsnap-2024-06-21-12h49m52s504.png"
+img_path = "/docker/deepak/image/61vMB3QmbWL._AC_UF894,1000_QL80_.jpg"
 # model_path = "/docker/models/anpr_plate_vehicle_detector.tiny_yolov3/v1/onnx/yolov3_tiny_anpr_op12.onnx"
 # video_path = "/docker/deepak/side _camera_office.mp4"
 # model_path = "/docker/models/anpr_plate_vehicle_detector.tiny_yolov7/v1/onnx/piyush.best.416.v3.onnx"
@@ -33,10 +33,10 @@ number_of_classes = 1
 confidence = 0.01
 provider='cpu'
 
-# anchors = [[81, 82, 135, 169, 344, 319],
-#         [10, 14, 23, 27, 37, 58]]
+anchors = [[81, 82, 135, 169, 344, 319],
+        [10, 14, 23, 27, 37, 58]]
 
-anchors = [[170, 285, 369, 492, 369, 492],[18, 45, 95, 47, 51, 96] ]
+# anchors = [[170, 285, 369, 492, 369, 492],[18, 45, 95, 47, 51, 96] ]
 
 
 v3_object = build.run_yolo_onnx.Yolov3(number_of_classes, anchors, model_path, batch_size, provider)
@@ -129,6 +129,6 @@ while True:
     print("overall_time in py file", (time.time() - start_batch_time)*1000)
     print("Batch_FPS in py file ", batch_size/(time.time() - start_batch_time))
     print("------------------------------------------------------------------------------------")
-    # exit()
+    exit()
 cap.release()
 out.release()

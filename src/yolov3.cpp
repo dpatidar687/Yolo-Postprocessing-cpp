@@ -116,9 +116,10 @@ cv::Mat Yolov3::numpyArrayToMat(py::array_t<uchar> arr)
 }
 py::array Yolov3::preprocess_batch(py::list &batch)
 {
-  // auto start = std::chrono::high_resolution_clock::now();
-  // std::cout << &batch << endl;
+  auto start = std::chrono::high_resolution_clock::now();
+  std::cout << &batch << endl;
 
+  auto start2 = Yolov3::get_current_ns();
   for (int64_t b = 0; b < batch.size(); ++b)
   {
     py::array_t<uchar> np_array = batch[b].cast<py::array_t<uchar>>();
@@ -131,9 +132,18 @@ py::array Yolov3::preprocess_batch(py::list &batch)
     this->preprocess(temp.data, b);
   }
 
-  // auto finish = std::chrono::high_resolution_clock::now();
-  // std::chrono::duration<double, std::milli> elapsed = finish - start;
-  // std::cout << "Elapsed Time in preprocessing : " << elapsed.count() << " mili seconds" << std::endl;
+  auto finish = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double, std::milli> elapsed = finish - start;
+  std::cout << "Elapsed Time in preprocessing : " << elapsed.count() << " mili seconds" << std::endl;
+
+
+  auto finish2 = Yolov3::get_current_ns();
+  std::cout<< "Elapsed Time in preprocessing cpp : " << (finish2 - start2) << " nano seconds" << std::endl;
+
+  // auto start3 = Yolov3::get_current_ns();
+  // this->dst = (float *)cv::dnn::blobFromImages(processed_images, 1.0, cv::Size(this->IMG_WIDTH, this->IMG_HEIGHT), cv::Scalar(), swap_channels, false).data;
+  // auto finish3 = Yolov3::get_current_ns();
+  // std::cout<< "Elapsed Time in preprocessing cv::dnn::blobFromImages : " << (finish3 - start3) << " nano seconds" << std::endl;
 
   auto capsule = py::capsule(dst, [](void *dst)
                              { delete reinterpret_cast<float *>(dst); });
@@ -379,7 +389,7 @@ void Yolov3::post_process_feature_map(const float *out_feature_map, const float 
           sigmoid(outputData[i + feature_map_size * ((num_classes + 5) * j + 4)]);
 
       const float &probability = class_confidence * box_confidence;
-      if (probability < confidenceThresh) // TODO check if giving correct result when Nan
+      if (box_confidence < confidenceThresh) // TODO check if giving correct result when Nan
         continue;
 
       float xcenter = outputData[i + feature_map_size * ((num_classes + 5) * j)];

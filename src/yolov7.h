@@ -17,6 +17,7 @@ namespace py = pybind11;
 #include <stdio.h>
 #include <iostream>
 #include <../models/model_config.h>
+
 #include <core/providers/cuda/cuda_provider_options.h>
 #include <core/providers/cpu/cpu_provider_factory.h>
 #include "onnxruntime_cxx_api.h"
@@ -27,7 +28,7 @@ namespace py = pybind11;
 class Yolov7
 {
     int IMG_WIDTH;
-    int IMG_HEIGHT;
+    int IMG_HEIGHT; 
     int BATCH_SIZE = 1;
     int IMG_CHANNEL;
     float *dst;
