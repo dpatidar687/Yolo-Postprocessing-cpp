@@ -73,7 +73,7 @@ py::list Yolobase::detect_ov(py::array &input_array){
      std::cout << "called the function detect_ov" << std::endl;
   std::cout << "outputValues.size() " << outputValues.size() << std::endl;
 
-
+  std::cout << "------------------------------------------------------------------" << std::endl;
 
 
   py::list pylist = py::list();
@@ -162,19 +162,6 @@ py::array Yolobase::preprocess_batch(py::list &batch)
 inline void Yolobase::preprocess(const unsigned char *src, const int64_t b)
 {
 
-  // for (int64_t i = 0; i < this->IMG_HEIGHT; ++i)
-  // {
-  //   for (int64_t j = 0; j < this->IMG_WIDTH; ++j)
-  //   {
-  //     for (int64_t c = 0; c < this->IMG_CHANNEL; ++c)
-  //     {
-  //       this->dst[b * this->IMG_CHANNEL * this->IMG_WIDTH * this->IMG_HEIGHT +
-  //                 c * this->IMG_HEIGHT * this->IMG_WIDTH + i * this->IMG_WIDTH + j] =
-  //           src[i * this->IMG_WIDTH * this->IMG_CHANNEL + j * this->IMG_CHANNEL + c] / 255.0;
-  //     }
-  //   }
-  // }
-
   if (this->PREPROCESS.IMG_ORDER == NETWORK_INPUT_ORDER::NCHW)
   {
 #pragma omp parallel for
@@ -209,36 +196,3 @@ inline void Yolobase::preprocess(const unsigned char *src, const int64_t b)
   }
 }
 
-// py::list Yolobase::detect(py::array &input_array)
-// {
-
-//    py::buffer_info buf = input_array.request();
-
-//   float *ptr = static_cast<float *>(buf.ptr);
-//   float *const_ptr = const_cast<float *>(ptr);
-//   // auto start = std::chrono::high_resolution_clock::now();
-//   auto inputOnnxTensor = Ort::Value::CreateTensor<float>(this->info,
-//                                                          const_ptr, this->inputTensorSize,
-//                                                          this->inputShape.data(), this->inputShape.size());
-//   auto outputValues = session_->Run(this->runOptions,
-//                                     names_of_inputs_cstr,
-//                                     &inputOnnxTensor, this->input_count,
-//                                     names_of_outputs_cstr, this->output_count);
-
-//   py::list pylist = py::list();
-//   for (int i = outputValues.size() - 1; i >= 0; i--)
-//   {
-//     float *a = outputValues[i].GetTensorMutableData<float>();
-
-//     auto capsule = py::capsule(a, [](void *a)
-//                                { delete reinterpret_cast<float *>(a); });
-//     auto py_arr = py::array(outputValues[i].GetTensorTypeAndShapeInfo().GetElementCount(), a, capsule);
-
-//     pylist.attr("append")(py_arr);
-//     py_arr.release();
-//     capsule.release();
-//     // inference_output.emplace_back(
-//     //     outputValues[i].GetTensorMutableData<float>(), outputValues[i].GetTensorMutableData<float>() +
-//     //                                                        outputValues[i].GetTensorTypeAndShapeInfo().GetElementCount());
-//   }
-// }

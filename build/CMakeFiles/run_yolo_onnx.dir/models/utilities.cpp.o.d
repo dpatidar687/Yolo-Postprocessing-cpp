@@ -221,6 +221,7 @@ CMakeFiles/run_yolo_onnx.dir/models/utilities.cpp.o: \
  /usr/local/include/opencv4/opencv2/core/core.hpp \
  /usr/local/include/opencv4/opencv2/core.hpp \
  /usr/local/include/opencv4/opencv2/core/cvdef.h \
+ /usr/local/include/opencv4/opencv2/core/version.hpp \
  /usr/local/include/opencv4/opencv2/core/hal/interface.h \
  /usr/local/include/opencv4/opencv2/core/cv_cpu_dispatch.h \
  /usr/lib/gcc/x86_64-linux-gnu/9/include/emmintrin.h \
@@ -228,7 +229,6 @@ CMakeFiles/run_yolo_onnx.dir/models/utilities.cpp.o: \
  /usr/lib/gcc/x86_64-linux-gnu/9/include/mmintrin.h \
  /usr/lib/gcc/x86_64-linux-gnu/9/include/mm_malloc.h \
  /usr/include/c++/9/stdlib.h \
- /usr/local/include/opencv4/opencv2/core/version.hpp \
  /usr/local/include/opencv4/opencv2/core/base.hpp \
  /usr/local/include/opencv4/opencv2/opencv_modules.hpp \
  /usr/include/c++/9/climits \
@@ -249,6 +249,7 @@ CMakeFiles/run_yolo_onnx.dir/models/utilities.cpp.o: \
  /usr/local/include/opencv4/opencv2/core/matx.hpp \
  /usr/local/include/opencv4/opencv2/core/saturate.hpp \
  /usr/local/include/opencv4/opencv2/core/fast_math.hpp \
+ /usr/local/include/opencv4/opencv2/core/matx.inl.hpp \
  /usr/local/include/opencv4/opencv2/core/types.hpp \
  /usr/include/c++/9/cfloat \
  /usr/lib/gcc/x86_64-linux-gnu/9/include/float.h \
@@ -276,6 +277,9 @@ CMakeFiles/run_yolo_onnx.dir/models/utilities.cpp.o: \
  /usr/local/include/opencv4/opencv2/flann/defines.h \
  /usr/local/include/opencv4/opencv2/flann/config.h \
  /usr/local/include/opencv4/opencv2/core/affine.hpp \
+ /usr/local/include/opencv4/opencv2/core/utils/logger.hpp \
+ /usr/local/include/opencv4/opencv2/core/utils/logger.defines.hpp \
+ /usr/local/include/opencv4/opencv2/core/utils/logtag.hpp \
  /usr/local/include/opencv4/opencv2/dnn.hpp \
  /usr/local/include/opencv4/opencv2/dnn/dnn.hpp \
  /usr/local/include/opencv4/opencv2/core/async.hpp \
@@ -328,10 +332,18 @@ CMakeFiles/run_yolo_onnx.dir/models/utilities.cpp.o: \
  /usr/local/include/opencv4/opencv2/imgcodecs.hpp \
  /usr/local/include/opencv4/opencv2/videoio.hpp \
  /usr/local/include/opencv4/opencv2/imgproc.hpp \
+ /usr/local/include/opencv4/opencv2/imgproc/segmentation.hpp \
  /usr/local/include/opencv4/opencv2/ml.hpp \
  /usr/local/include/opencv4/opencv2/ml/ml.inl.hpp \
  /usr/local/include/opencv4/opencv2/objdetect.hpp \
+ /usr/local/include/opencv4/opencv2/objdetect/aruco_detector.hpp \
+ /usr/local/include/opencv4/opencv2/objdetect/aruco_dictionary.hpp \
+ /usr/local/include/opencv4/opencv2/objdetect/aruco_board.hpp \
+ /usr/local/include/opencv4/opencv2/objdetect/graphical_code_detector.hpp \
  /usr/local/include/opencv4/opencv2/objdetect/detection_based_tracker.hpp \
+ /usr/local/include/opencv4/opencv2/objdetect/face.hpp \
+ /usr/local/include/opencv4/opencv2/objdetect/charuco_detector.hpp \
+ /usr/local/include/opencv4/opencv2/objdetect/barcode.hpp \
  /usr/local/include/opencv4/opencv2/photo.hpp \
  /usr/local/include/opencv4/opencv2/stitching.hpp \
  /usr/local/include/opencv4/opencv2/stitching/warpers.hpp \
