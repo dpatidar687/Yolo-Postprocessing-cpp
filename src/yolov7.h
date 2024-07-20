@@ -16,7 +16,7 @@ using namespace std;
 namespace py = pybind11;
 #include <stdio.h>
 #include <iostream>
-#include <../models/model_config.h>
+// #include <../models/model_config.h>
 
 #include <core/providers/cuda/cuda_provider_options.h>
 #include <core/providers/cpu/cpu_provider_factory.h>
@@ -125,14 +125,14 @@ public:
     };
 };
 
-class yolobase{
+// class yolobase{
 
-    public:
-        yolobase() = default;
-        yolobase(const mtx::ModelConfig &config){
-             std::cout << "\t Model Path: " << config.get_confidence_threshold() << std::endl;
-             std::cout << "done with the exposeing of yolobase"<< std::endl;
-        }
-        ~yolobase() = default;
+//     public:
+//         yolobase() = default;
+//         yolobase(const mtx::ModelConfig &config){
+//              std::cout << "\t Model Path: " << config.get_confidence_threshold() << std::endl;
+//              std::cout << "done with the exposeing of yolobase"<< std::endl;
+//         }
+//         ~yolobase() = default;
         
-};
+// };

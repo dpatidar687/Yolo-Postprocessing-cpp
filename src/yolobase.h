@@ -16,11 +16,13 @@ using namespace std;
 namespace py = pybind11;
 #include <stdio.h>
 #include <iostream>
+
 #include <../models/model_config.h>
-// #include <../accelerators/TensorRT/TensorRT.h>
-// #include <../accelerators/ORT/ORT.h>
+#include <../accelerators/TensorRT/TensorRT.h>
+#include <../accelerators/ORT/ORT.h>
 #include<../accelerators/OpenVINO/OpenVINO.h>
 #include<../models/InferenceEngine.h>
+
 
 #include <core/providers/cuda/cuda_provider_options.h>
 #include <core/providers/cpu/cpu_provider_factory.h>
@@ -105,6 +107,7 @@ class Yolobase{
 		std::unique_ptr<mtx::InferenceEngine> yolo_infer;						/**< Inference Engine Object. */
 		bool async;
 		pre_processing PREPROCESS_INFO;
+    bool isSecondary= false;
         
     public:
         Yolobase() = default;

@@ -20,7 +20,7 @@ Yolobase::Yolobase(const mtx::ModelConfig &config)
   this->IMG_ORDER = PREPROCESS.IMG_ORDER;
   this->dst = new float[this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_WIDTH *
                         this->IMG_HEIGHT];
-//  ###############################################################################################
+  //  ###############################################################################################
   this->model_path = config.get_model_path();
   this->gpu_idx = 0; // hardcode GPU index as it always starts from 0 at runtime
   this->provider = config.get_provider();
@@ -49,35 +49,61 @@ Yolobase::Yolobase(const mtx::ModelConfig &config)
 
   if (this->provider == "onnx-openvino-cpu" || this->provider == "onnx-openvino-gpu")
   {
-    std::cout << "Using OpenVINO" << std::endl;
+    std::cout << "Using OpenVINO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
 
     this->yolo_infer = std::make_unique<mtx::OpenVINOInferenceEngine>(this->model_path, this->provider,
-        std::vector<std::vector<long int>>{{this->batch_size, this->model_input_shape[2], this->model_input_shape[0], this->model_input_shape[1]}},
-        output_shape, this->PREPROCESS_INFO);
-  
+                                                                      std::vector<std::vector<long int>>{{this->batch_size, this->model_input_shape[2], 
+                                                                          this->model_input_shape[0], this->model_input_shape[1]}},
+                                                                      output_shape, this->PREPROCESS_INFO);
+  }
+  else if (this->provider == "onnx-gpu" || this->provider == "onnx-cpu")
+  {
+    std::cout << "Using ONNX Runtime !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+    this->yolo_infer = std::make_unique<mtx::ORTInferenceEngine>(this->model_path, this->provider, gpuIdx,
+                                                                 std::vector<std::vector<long int>>{{this->batch_size, this->model_input_shape[2], 
+                                                                      this->model_input_shape[0], this->model_input_shape[1]}},
+                                                                 output_shape, this->PREPROCESS_INFO);
+    this->async = false;
+  }
+  else if (this->provider == "onnx-tensorrt")
+  {
+    std::cout << "Using TensorRT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+    this->yolo_infer = std::make_unique<mtx::TRTInferenceEngine>(this->model_path, this->provider,
+                                                                 std::vector<std::vector<long int>>{{this->batch_size, this->model_input_shape[2],
+                                                                   this->model_input_shape[0], this->model_input_shape[1]}}, 
+                                                                   output_shape, this->PREPROCESS_INFO, false);
+  }
+  else
+  {
+    throw std::runtime_error("Unsupported provider");
   }
 }
 
-py::list Yolobase::detect_ov(py::array &input_array){
-  
-  std::cout << "Input_array shape "<< input_array.shape(0) << std::endl;
+py::list Yolobase::detect_ov(py::array &input_array)
+{
+
+  std::cout << "------------------------------------------------------------------" << std::endl;
+
+  std::cout << "Input_array shape " << input_array.shape(0) << std::endl;
   py::buffer_info buf = input_array.request();
 
   float *ptr = static_cast<float *>(buf.ptr);
-  float *const_ptr = const_cast<float *>(ptr);
+  // float *const_ptr = const_cast<float *>(ptr);
 
+  std::cout << "before enqueue" << std::endl;
+  this->yolo_infer->enqueue(ptr);
 
-    this->yolo_infer->enqueue(const_ptr);
-    const auto &outputValues = this->yolo_infer->execute_network();
+  std::cout << "enqueue done" << std::endl;
 
-     std::cout << "called the function detect_ov" << std::endl;
+  const auto &outputValues = this->yolo_infer->execute_network();
+
+  std::cout << "called the function detect_ov" << std::endl;
   std::cout << "outputValues.size() " << outputValues.size() << std::endl;
 
   std::cout << "------------------------------------------------------------------" << std::endl;
 
-
   py::list pylist = py::list();
-  for (int i = 0 ; i < outputValues.size() ; i++)
+  for (int i = 0; i < outputValues.size(); i++)
   {
     float *a = outputValues[i].data;
     std::cout << "output shape " << outputValues[i].element_count << std::endl;
@@ -89,12 +115,11 @@ py::list Yolobase::detect_ov(py::array &input_array){
     pylist.attr("append")(py_arr);
     py_arr.release();
     capsule.release();
-   
   }
 
   return pylist;
-
 }
+
 
 cv::Mat Yolobase::numpyArrayToMat(py::array_t<uchar> arr)
 {
@@ -113,7 +138,7 @@ float Yolobase::sigmoid(float x) const
 }
 cv::Mat Yolobase::create_letterbox(const cv::Mat &frame) const
 {
-  std::cout << "using letterboxing be aware " << std::endl;
+  std::cout << "using letterboxing be aware this is in yolobase" << std::endl;
   int origW = frame.cols, origH = frame.rows;
   std::vector<float> originImageSize{static_cast<float>(origH), static_cast<float>(origW)};
   float scale = std::min<float>(1.0 * this->IMG_WIDTH / origW, 1.0 * this->IMG_HEIGHT / origH);
@@ -195,4 +220,3 @@ inline void Yolobase::preprocess(const unsigned char *src, const int64_t b)
     }
   }
 }
-

@@ -5,8 +5,6 @@
 #include <../models/model_config.h>
 #include <yolobase.h>
 
-// #include "core/InferenceEngine.h"
-#include "openvino/openvino.hpp"
 PYBIND11_MODULE(run_yolo_onnx, m)
 {
     py::class_<Yolov3>(m, "Yolov3")
@@ -44,29 +42,13 @@ PYBIND11_MODULE(run_yolo_onnx, m)
     .def("infer", &Base_classifier::infer);
 
 
-    
     py::class_<mtx::ModelConfig>(m, "ModelConfig")
-        .def(py::init<const std::string&,
-                      const std::string&,
-                      const int64_t&,
-                      const float&,
-                      const bool,
-                      const std::string&,
-                      std::map<std::string, std::vector<float>>>(),
-             py::arg("json_config_path"),
-             py::arg("provider"),
-             py::arg("batch_size"),
-             py::arg("confidence_threshold"),
-             py::arg("draw_blobs_on_frames"),
-             py::arg("infer_blob"),
-             py::arg("preprocesses"));
+        .def(py::init<const std::string&, const std::string&, const int64_t&, const float&>());
 
     py::class_<Yolobase>(m, "Yolobase")
-        .def(py::init<>())  // Default constructor
         .def(py::init<const mtx::ModelConfig&>(), py::arg("config"))
         .def("preprocess_batch", &Yolobase::preprocess_batch, py::return_value_policy::reference)
         .def("detect_ov", &Yolobase::detect_ov, py::return_value_policy::reference);
         
 
 }
-

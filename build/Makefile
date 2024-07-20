@@ -85,6 +85,51 @@ rebuild_cache:
 rebuild_cache/fast: rebuild_cache
 .PHONY : rebuild_cache/fast
 
+# Special rule for the target list_install_components
+list_install_components:
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Available install components are: \"Unspecified\""
+.PHONY : list_install_components
+
+# Special rule for the target list_install_components
+list_install_components/fast: list_install_components
+.PHONY : list_install_components/fast
+
+# Special rule for the target install
+install: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Install the project..."
+	/opt/cmake-3.27.3/bin/cmake -P cmake_install.cmake
+.PHONY : install
+
+# Special rule for the target install
+install/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Install the project..."
+	/opt/cmake-3.27.3/bin/cmake -P cmake_install.cmake
+.PHONY : install/fast
+
+# Special rule for the target install/local
+install/local: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing only the local directory..."
+	/opt/cmake-3.27.3/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+.PHONY : install/local
+
+# Special rule for the target install/local
+install/local/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing only the local directory..."
+	/opt/cmake-3.27.3/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+.PHONY : install/local/fast
+
+# Special rule for the target install/strip
+install/strip: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing the project stripped..."
+	/opt/cmake-3.27.3/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+.PHONY : install/strip
+
+# Special rule for the target install/strip
+install/strip/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing the project stripped..."
+	/opt/cmake-3.27.3/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+.PHONY : install/strip/fast
+
 # The main all target
 all: cmake_check_build_system
 	$(CMAKE_COMMAND) -E cmake_progress_start /docker/deepak/Yolo-Postprocessing-cpp/build/CMakeFiles /docker/deepak/Yolo-Postprocessing-cpp/build//CMakeFiles/progress.marks
@@ -129,6 +174,43 @@ run_yolo_onnx/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/run_yolo_onnx.dir/build.make CMakeFiles/run_yolo_onnx.dir/build
 .PHONY : run_yolo_onnx/fast
 
+#=============================================================================
+# Target rules for targets named spdlog_headers_for_ide
+
+# Build rule for target.
+spdlog_headers_for_ide: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 spdlog_headers_for_ide
+.PHONY : spdlog_headers_for_ide
+
+# fast build rule for target.
+spdlog_headers_for_ide/fast:
+	$(MAKE) $(MAKESILENT) -f ext/spdlog/CMakeFiles/spdlog_headers_for_ide.dir/build.make ext/spdlog/CMakeFiles/spdlog_headers_for_ide.dir/build
+.PHONY : spdlog_headers_for_ide/fast
+
+accelerators/ORT/ORT.o: accelerators/ORT/ORT.cpp.o
+.PHONY : accelerators/ORT/ORT.o
+
+# target to build an object file
+accelerators/ORT/ORT.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/run_yolo_onnx.dir/build.make CMakeFiles/run_yolo_onnx.dir/accelerators/ORT/ORT.cpp.o
+.PHONY : accelerators/ORT/ORT.cpp.o
+
+accelerators/ORT/ORT.i: accelerators/ORT/ORT.cpp.i
+.PHONY : accelerators/ORT/ORT.i
+
+# target to preprocess a source file
+accelerators/ORT/ORT.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/run_yolo_onnx.dir/build.make CMakeFiles/run_yolo_onnx.dir/accelerators/ORT/ORT.cpp.i
+.PHONY : accelerators/ORT/ORT.cpp.i
+
+accelerators/ORT/ORT.s: accelerators/ORT/ORT.cpp.s
+.PHONY : accelerators/ORT/ORT.s
+
+# target to generate assembly for a file
+accelerators/ORT/ORT.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/run_yolo_onnx.dir/build.make CMakeFiles/run_yolo_onnx.dir/accelerators/ORT/ORT.cpp.s
+.PHONY : accelerators/ORT/ORT.cpp.s
+
 accelerators/OpenVINO/OpenVINO.o: accelerators/OpenVINO/OpenVINO.cpp.o
 .PHONY : accelerators/OpenVINO/OpenVINO.o
 
@@ -152,6 +234,30 @@ accelerators/OpenVINO/OpenVINO.s: accelerators/OpenVINO/OpenVINO.cpp.s
 accelerators/OpenVINO/OpenVINO.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/run_yolo_onnx.dir/build.make CMakeFiles/run_yolo_onnx.dir/accelerators/OpenVINO/OpenVINO.cpp.s
 .PHONY : accelerators/OpenVINO/OpenVINO.cpp.s
+
+accelerators/TensorRT/TensorRT.o: accelerators/TensorRT/TensorRT.cpp.o
+.PHONY : accelerators/TensorRT/TensorRT.o
+
+# target to build an object file
+accelerators/TensorRT/TensorRT.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/run_yolo_onnx.dir/build.make CMakeFiles/run_yolo_onnx.dir/accelerators/TensorRT/TensorRT.cpp.o
+.PHONY : accelerators/TensorRT/TensorRT.cpp.o
+
+accelerators/TensorRT/TensorRT.i: accelerators/TensorRT/TensorRT.cpp.i
+.PHONY : accelerators/TensorRT/TensorRT.i
+
+# target to preprocess a source file
+accelerators/TensorRT/TensorRT.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/run_yolo_onnx.dir/build.make CMakeFiles/run_yolo_onnx.dir/accelerators/TensorRT/TensorRT.cpp.i
+.PHONY : accelerators/TensorRT/TensorRT.cpp.i
+
+accelerators/TensorRT/TensorRT.s: accelerators/TensorRT/TensorRT.cpp.s
+.PHONY : accelerators/TensorRT/TensorRT.s
+
+# target to generate assembly for a file
+accelerators/TensorRT/TensorRT.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/run_yolo_onnx.dir/build.make CMakeFiles/run_yolo_onnx.dir/accelerators/TensorRT/TensorRT.cpp.s
+.PHONY : accelerators/TensorRT/TensorRT.cpp.s
 
 models/InferenceEngine.o: models/InferenceEngine.cpp.o
 .PHONY : models/InferenceEngine.o
@@ -352,11 +458,22 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... edit_cache"
+	@echo "... install"
+	@echo "... install/local"
+	@echo "... install/strip"
+	@echo "... list_install_components"
 	@echo "... rebuild_cache"
+	@echo "... spdlog_headers_for_ide"
 	@echo "... run_yolo_onnx"
+	@echo "... accelerators/ORT/ORT.o"
+	@echo "... accelerators/ORT/ORT.i"
+	@echo "... accelerators/ORT/ORT.s"
 	@echo "... accelerators/OpenVINO/OpenVINO.o"
 	@echo "... accelerators/OpenVINO/OpenVINO.i"
 	@echo "... accelerators/OpenVINO/OpenVINO.s"
+	@echo "... accelerators/TensorRT/TensorRT.o"
+	@echo "... accelerators/TensorRT/TensorRT.i"
+	@echo "... accelerators/TensorRT/TensorRT.s"
 	@echo "... models/InferenceEngine.o"
 	@echo "... models/InferenceEngine.i"
 	@echo "... models/InferenceEngine.s"

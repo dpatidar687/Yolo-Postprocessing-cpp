@@ -13,8 +13,8 @@ import cv2
 
 
 model_path = "/docker/models/anpr_plate_vehicle_detector.tiny_yolov7/v1/onnx/piyush.best.416.v7.onnx"
-letter_box = False
-letter_box_color = [0,0,0]
+letter_box = True
+letter_box_color = [114,114,114]
 
 provider='cpu'
 
@@ -25,19 +25,21 @@ anchors = [[116, 90, 156, 198, 373, 326],
 img_path = "/docker/deepak/image/2_jpg.rf.99922942d0a3d839f3d2cba6fb3716bf.jpg"
 full_image = cv2.imread(img_path)
 number_of_classes = 7
-batch_size = 2
+batch_size = 10
 v7_object = build.run_yolo_onnx.Yolov7(number_of_classes, anchors, model_path, batch_size, provider, letter_box, letter_box_color)
 conf_thresh = 0.3
 
 
 
 spec = '/docker/models/anpr_plate_vehicle_detector.tiny_yolov7/v1/spec.piyush.final.v7.json'
-provider = 'onnx-openvino-cpu'
+# provider = 'onnx-openvino-cpu'
+# provider = 'onnx-tensorrt'
+provider = 'onnx-cpu'
 
-'''
 
 model_config = build.run_yolo_onnx.ModelConfig(spec, provider,
-                                     batch_size, conf_thresh, False,'no', {}  )
+                                     batch_size, conf_thresh )
+
 
 yolo_base = build.run_yolo_onnx.Yolobase(model_config)  
 
@@ -51,10 +53,21 @@ while True:
     
     preprocessed_img_cpp = yolo_base.preprocess_batch(batch_list) 
     
+    # preprocessed_img_cpp = v7_object.preprocess_batch(batch_list)
+    
+    # dot_product = np.dot(preprocessed_img_cpp, preprocessed_img_cpp_v7)
+
+    # magnitude_array1 = np.linalg.norm(preprocessed_img_cpp)
+    # magnitude_array2 = np.linalg.norm(preprocessed_img_cpp_v7)
+    
+    
+    # print(dot_product/(magnitude_array1*magnitude_array2))
+        
+     
     inferenced_output = yolo_base.detect_ov(preprocessed_img_cpp)
 
     print("len of inferenced_output",len(inferenced_output))
-   
+    
     list_of_boxes = v7_object.postprocess_batch(inferenced_output, conf_thresh , 0.45 , full_image.shape[0] , full_image.shape[1])
 
     
@@ -78,7 +91,7 @@ while True:
     print("------------------------------------------------------------------------------------")
     exit()
 
-'''
+
 
 model_path = "/docker/models/anpr_plate_vehicle_detector.tiny_yolov7/v1/onnx/piyush.best.416.v7.onnx"
 letter_box = False
@@ -114,8 +127,6 @@ while True:
     
     
     list_of_boxes = v7_object.postprocess_batch(inferenced_output, conf_thresh , 0.45 , full_image.shape[0] , full_image.shape[1])
-    5106261372566223
-# 339.48004150390625 366.2054138183594 390.4420471191406 398.57769775390625 6 0.4777664244174957
     # print(len(list_of_boxes))
     # print(len(batch_list))
     
@@ -144,26 +155,3 @@ while True:
 
 
 
-# 256.38555908203125 262.025390625 458.022216796875 636.450927734375 1 0.5106261372566223
-# 256.38555908203125 262.025390625 458.022216796875 636.450927734375 1 0.5106261372566223
-
-# 256.3775939941406 262.0298156738281 458.0533142089844 636.4268188476562 1 0.5103762149810791
-# 256.3775939941406 262.0298156738281 458.0533142089844 636.4268188476562 1 0.5103762149810791
-
-
-
-
-# 256.3775939941406 262.0298156738281 458.0533142089844 636.4268188476562 1 0.5103762149810791
-# 339.4759826660156 366.20404052734375 390.4422607421875 398.58709716796875 6 0.47748276591300964
-
-
-# 256.38555908203125 262.025390625 458.022216796875 636.450927734375 1 0.5106261372566223
-# 339.48004150390625 366.2054138183594 390.4420471191406 398.57769775390625 6 0.4777664244174957
-
-# 254.91073608398438 258.75164794921875 450.87884521484375 639.0 1 0.6499114036560059
-# 336.71038818359375 364.77490234375 390.8795166015625 401.9630432128906 6 0.46018850803375244
-# 385.8459777832031 104.02576446533203 429.4844970703125 128.59446716308594 6 0.35598239302635193
-
-# 254.91073608398438 258.75164794921875 450.87884521484375 639.0 1 0.6499114036560059
-# 336.71038818359375 364.77490234375 390.8795166015625 401.9630432128906 6 0.46018850803375244
-# 385.8459777832031 104.02576446533203 429.4844970703125 128.59446716308594 6 0.35598239302635193

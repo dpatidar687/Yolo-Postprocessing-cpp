@@ -1,6 +1,10 @@
 file(REMOVE_RECURSE
+  "CMakeFiles/run_yolo_onnx.dir/accelerators/ORT/ORT.cpp.o"
+  "CMakeFiles/run_yolo_onnx.dir/accelerators/ORT/ORT.cpp.o.d"
   "CMakeFiles/run_yolo_onnx.dir/accelerators/OpenVINO/OpenVINO.cpp.o"
   "CMakeFiles/run_yolo_onnx.dir/accelerators/OpenVINO/OpenVINO.cpp.o.d"
+  "CMakeFiles/run_yolo_onnx.dir/accelerators/TensorRT/TensorRT.cpp.o"
+  "CMakeFiles/run_yolo_onnx.dir/accelerators/TensorRT/TensorRT.cpp.o.d"
   "CMakeFiles/run_yolo_onnx.dir/models/InferenceEngine.cpp.o"
   "CMakeFiles/run_yolo_onnx.dir/models/InferenceEngine.cpp.o.d"
   "CMakeFiles/run_yolo_onnx.dir/models/model_config.cpp.o"

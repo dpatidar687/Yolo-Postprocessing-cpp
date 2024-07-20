@@ -183,15 +183,26 @@ py::list Yolov7::detect(py::array &input_array)
   py::buffer_info buf = input_array.request();
 
   float *ptr = static_cast<float *>(buf.ptr);
-  float *const_ptr = const_cast<float *>(ptr);
+  // float *const_ptr = const_cast<float *>(ptr);
   // auto start = std::chrono::high_resolution_clock::now();
+
+  std::cout << "------------------------------------------------------------------" << std::endl;
+
+  std::cout << "Input_array shape " << input_array.shape(0) << std::endl;
+
   auto inputOnnxTensor = Ort::Value::CreateTensor<float>(this->info,
-                                                         const_ptr, this->inputTensorSize,
+                                                         const_cast<float *>(ptr), this->inputTensorSize,
                                                          this->inputShape.data(), this->inputShape.size());
   auto outputValues = session_->Run(this->runOptions,
                                     names_of_inputs_cstr,
                                     &inputOnnxTensor, this->input_count,
                                     names_of_outputs_cstr, this->output_count);
+
+  std::cout << "called the function detect_ of ort" << std::endl;
+  std::cout << "outputValues.size() " << outputValues.size() << std::endl;
+
+  std::cout << "------------------------------------------------------------------" << std::endl;
+
 
   py::list pylist = py::list();
   for (int i = outputValues.size() - 1; i >= 0; i--)
