@@ -1,7 +1,7 @@
 CMakeFiles/run_yolo_onnx.dir/src/base_classifier.cpp.o: \
- /docker/deepak/Yolo-Postprocessing-cpp/src/base_classifier.cpp \
+ /docker/Yolo-Postprocessing-cpp/src/base_classifier.cpp \
  /usr/include/stdc-predef.h \
- /docker/deepak/Yolo-Postprocessing-cpp/src/base_classifier.h \
+ /docker/Yolo-Postprocessing-cpp/src/base_classifier.h \
  /usr/include/c++/9/iostream \
  /usr/include/x86_64-linux-gnu/c++/9/bits/c++config.h \
  /usr/include/x86_64-linux-gnu/c++/9/bits/os_defines.h \

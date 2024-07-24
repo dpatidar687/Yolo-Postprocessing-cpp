@@ -2,7 +2,7 @@
 #define _OPENVINO_H
 
 #ifdef ENABLE_VINO 
-#include "../models/InferenceEngine.h"
+#include "../../models/InferenceEngine.h"
 #include "openvino/openvino.hpp"
 #include <malloc.h>
 

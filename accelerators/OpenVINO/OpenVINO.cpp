@@ -234,7 +234,11 @@ namespace mtx
 	void OpenVINOInferenceEngine::enqueue(float *src)
 	{
 		int64_t elem_count = this->ov_input_tensors.begin()->second.element_count;
-		#pragma omp parallel for
+		// #pragma omp parallel for
+
+		std::cout << "Batch size: " << this->BATCH_SIZE << std::endl;
+		std::cout << "Curr batch size: " << this->CURR_BATCH_SIZE << std::endl;
+
 		for (int i = 0; i < this->BATCH_SIZE; i++)
 		{
 			if (i >= this->CURR_BATCH_SIZE)
@@ -256,20 +260,53 @@ namespace mtx
 		std::vector<tensor_details> output_tensors;
 		for (int i = 0; i < this->BATCH_SIZE; i++)
 		{
-			if (_in_queue[i])
-			{
+			// if (_in_queue[i])
+			// {
 				this->infer_pool[i].wait();
 				for (auto &tensor_name : this->ov_output_tensors)
 				{
+					std::cout << "Output name: " << tensor_name.first << std::endl;
 					ov::Tensor output = infer_pool[i].get_tensor(tensor_name.first);
 					auto *raw_tensor = this->tensor_raw_data[tensor_name.first].data;
 					auto *tensor_data = const_cast<float *>(output.data<const float>());
 					memcpy(raw_tensor + i * tensor_name.second.element_count, tensor_data, tensor_name.second.element_count * sizeof(float));
-					output_tensors.push_back(this->tensor_raw_data[tensor_name.first]);
+					// output_tensors.push_back(this->tensor_raw_data[tensor_name.first]);
 				}
-				_in_queue[i] = false;
-			}
+			// 	_in_queue[i] = false;
+			// }
 		}
+
+		for (auto &tensor_name : this->ov_output_tensors)
+		{
+			std::cout << "Output name: " << tensor_name.first << std::endl;
+			std::cout << "batch size: " << this->BATCH_SIZE << std::endl;
+			std::cout << "current batch size: " << this->CURR_BATCH_SIZE << std::endl;
+
+			auto opt_tensor = this->tensor_raw_data[tensor_name.first];
+			opt_tensor.shape[0] = this->BATCH_SIZE;
+			opt_tensor.element_count *= this->BATCH_SIZE;
+			output_tensors.push_back(opt_tensor);
+		}
+
+// 		for (auto &tensor_name : this->ov_output_tensors)
+// {
+//     std::cout << "Output name: " << tensor_name.first << std::endl;
+//     for (int i = 0; i < this->BATCH_SIZE; i++)
+//     {
+//         if (_in_queue[i])
+//         {
+//             this->infer_pool[i].wait();
+//             ov::Tensor output = infer_pool[i].get_tensor(tensor_name.first);
+//             auto *raw_tensor = this->tensor_raw_data[tensor_name.first].data;
+//             auto *tensor_data = const_cast<float *>(output.data<const float>());
+//             memcpy(raw_tensor + i * tensor_name.second.element_count, tensor_data, tensor_name.second.element_count * sizeof(float));
+            
+//             _in_queue[i] = false;
+//         }
+// 		output_tensors.push_back(this->tensor_raw_data[tensor_name.first]);
+//     }
+// }
+
 
 		// malloc_trim(0);
 		return output_tensors;

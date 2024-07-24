@@ -20,6 +20,8 @@ Yolobase::Yolobase(const mtx::ModelConfig &config)
   this->IMG_ORDER = PREPROCESS.IMG_ORDER;
   this->dst = new float[this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_WIDTH *
                         this->IMG_HEIGHT];
+
+
   //  ###############################################################################################
   this->model_path = config.get_model_path();
   this->gpu_idx = 0; // hardcode GPU index as it always starts from 0 at runtime
@@ -79,6 +81,7 @@ Yolobase::Yolobase(const mtx::ModelConfig &config)
   }
 }
 
+
 py::list Yolobase::detect_ov(py::array &input_array)
 {
 
@@ -93,6 +96,7 @@ py::list Yolobase::detect_ov(py::array &input_array)
   std::cout << "before enqueue" << std::endl;
   this->yolo_infer->enqueue(ptr);
 
+
   std::cout << "enqueue done" << std::endl;
 
   const auto &outputValues = this->yolo_infer->execute_network();
@@ -106,13 +110,13 @@ py::list Yolobase::detect_ov(py::array &input_array)
   for (int i = 0; i < outputValues.size(); i++)
   {
     float *a = outputValues[i].data;
-    std::cout << "output shape " << outputValues[i].element_count << std::endl;
     auto capsule = py::capsule(a, [](void *a)
                                { delete reinterpret_cast<float *>(a); });
 
     auto py_arr = py::array(outputValues[i].element_count, a, capsule);
 
     pylist.attr("append")(py_arr);
+
     py_arr.release();
     capsule.release();
   }
@@ -155,32 +159,47 @@ cv::Mat Yolobase::create_letterbox(const cv::Mat &frame) const
 }
 py::array Yolobase::preprocess_batch(py::list &batch)
 {
-  for (int64_t b = 0; b < batch.size(); ++b)
-  {
-    py::array_t<uchar> np_array = batch[b].cast<py::array_t<uchar>>();
-    cv::Mat img = numpyArrayToMat(np_array);
+  // for (int64_t b = 0; b < batch.size(); ++b)
+  // {
+  //   py::array_t<uchar> np_array = batch[b].cast<py::array_t<uchar>>();
+  //   cv::Mat img = numpyArrayToMat(np_array);
 
-    if (this->USE_LETTERBOX)
+  //   if (this->USE_LETTERBOX)
+  //   {
+  //     std::cout << "using letterboxing be aware " << std::endl;
+  //     const unsigned char *src = this->create_letterbox(img).data;
+  //     this->preprocess(src, b);
+  //   }
+  //   else
+  //   {
+  //     cv::Mat temp;
+  //     cv::resize(img, temp, cv::Size(this->IMG_WIDTH, this->IMG_HEIGHT), 0, 0, cv::INTER_LINEAR);
+  //     cv::cvtColor(temp, temp, cv::COLOR_BGR2RGB);
+  //     this->preprocess(temp.data, b);
+  //   }
+
+  // }
+    std::vector<cv::Mat> batch_cpp;
+    std::cout << batch.size() << std::endl;
+    for (int64_t b = 0; b < batch.size(); ++b)
     {
-      std::cout << "using letterboxing be aware " << std::endl;
-      const unsigned char *src = this->create_letterbox(img).data;
-      this->preprocess(src, b);
+      py::array_t<uchar> np_array = batch[b].cast<py::array_t<uchar>>();
+      cv::Mat img = numpyArrayToMat(np_array);
+
+      batch_cpp.push_back(img);
     }
-    else
-    {
-      cv::Mat temp;
-      cv::resize(img, temp, cv::Size(this->IMG_WIDTH, this->IMG_HEIGHT), 0, 0, cv::INTER_LINEAR);
-      cv::cvtColor(temp, temp, cv::COLOR_BGR2RGB);
-      this->preprocess(temp.data, b);
-    }
-  }
+
+
+    this->dst = this->yolo_infer->preprocess_batch(batch_cpp);
+
+    batch_cpp.clear();
 
   auto capsule = py::capsule(dst, [](void *dst)
                              { delete reinterpret_cast<float *>(dst); });
 
+  std::cout << this->BATCH_SIZE << this->IMG_CHANNEL << this->IMG_WIDTH << this->IMG_HEIGHT << std::endl;
   py::array img_array = py::array(this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_WIDTH * this->IMG_HEIGHT, dst, capsule);
   capsule.release();
-
   return img_array;
 }
 

@@ -5,6 +5,7 @@
 #include <thread>
 #include <chrono>
 #include <vector>
+#include <cassert>
 
 namespace mtx {
 
@@ -83,6 +84,8 @@ namespace mtx {
         PostprocessCudaStream.reset();
 
         for (auto& [name, ip_tensor] : ip_tensors){
+            std::cout << "Freeing tensor: " << name << std::endl;
+            std::cout << "Size: " << ip_tensor.size << std::endl;
             CHECK_CUDA_ERROR(cudaFree(ip_tensor.buffer));
         }
 
@@ -471,12 +474,14 @@ namespace mtx {
                     // Removing this waitEvent. Not any impact on results seen yet.
                     // Need more testing
                     // CHECK_CUDA_ERROR(cudaStreamWaitEvent(*InferCudaStream, *waitEvent, 0));
+
+                    std::cout << "Transfering in the cpu" << std::endl;
                     CHECK_CUDA_ERROR(cudaMemcpyAsync(ip_tensor.buffer, src+curr_pos,
                                                      CURR_BATCH_SIZE* ip_tensor.size * sizeof(float),
                                                      cudaMemcpyHostToDevice, *PreprocessCudaStream));
+                    // Print values for debugging purposes
+                    
                 }
-                            
-
             }
             // Tensor on GPU here!!
             if (attr.device==0 && attr.hostPointer!=NULL){
@@ -484,7 +489,7 @@ namespace mtx {
                 // If used internal impl, no need for waiting as the data is already allocated to the memory
                 // Adding wait and copy if src and ip_tensor.buffer are not same
                 // Event if there is any copy is taking place, it is extremely fast (~10 microseconds for batch of 5 frames of 3x640x480 data)
-                // std::cout << "Tensor on GPU!!" << std::endl;
+                std::cout << "Tensor on GPU!! and transfering in the cpu" << std::endl;
                 if (ip_tensor.buffer!=src+curr_pos){
                     if (ip_tensor.isConsumed){
                         // CHECK_CUDA_ERROR(cudaStreamWaitEvent(*InferCudaStream, *waitEvent, 0));

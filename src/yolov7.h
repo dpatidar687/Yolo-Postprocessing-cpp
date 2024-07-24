@@ -118,21 +118,10 @@ public:
                                const float confidenceThresh, const float nms_threshold,
                                const int64_t input_image_height, const int64_t input_image_width);
 
-    ~Yolov7()
-    {
-        delete session_;
-        delete[] this->dst;
-    };
+    // ~Yolov7()
+    // {
+    //     delete session_;
+    //     delete[] this->dst;
+    // };
 };
 
-// class yolobase{
-
-//     public:
-//         yolobase() = default;
-//         yolobase(const mtx::ModelConfig &config){
-//              std::cout << "\t Model Path: " << config.get_confidence_threshold() << std::endl;
-//              std::cout << "done with the exposeing of yolobase"<< std::endl;
-//         }
-//         ~yolobase() = default;
-        
-// };

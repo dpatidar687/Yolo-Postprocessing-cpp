@@ -54,10 +54,10 @@ RM = /opt/cmake-3.27.3/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /docker/deepak/Yolo-Postprocessing-cpp
+CMAKE_SOURCE_DIR = /docker/Yolo-Postprocessing-cpp
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /docker/deepak/Yolo-Postprocessing-cpp/build
+CMAKE_BINARY_DIR = /docker/Yolo-Postprocessing-cpp/build
 
 #=============================================================================
 # Directory level rules for the build root directory
@@ -98,14 +98,14 @@ ext/spdlog/clean: ext/spdlog/CMakeFiles/spdlog_headers_for_ide.dir/clean
 CMakeFiles/run_yolo_onnx.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/run_yolo_onnx.dir/build.make CMakeFiles/run_yolo_onnx.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/run_yolo_onnx.dir/build.make CMakeFiles/run_yolo_onnx.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/docker/deepak/Yolo-Postprocessing-cpp/build/CMakeFiles --progress-num=1,2,3,4,5,6,7,8,9,10,11,12 "Built target run_yolo_onnx"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/docker/Yolo-Postprocessing-cpp/build/CMakeFiles --progress-num=1,2,3,4,5,6,7,8,9,10,11,12 "Built target run_yolo_onnx"
 .PHONY : CMakeFiles/run_yolo_onnx.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/run_yolo_onnx.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /docker/deepak/Yolo-Postprocessing-cpp/build/CMakeFiles 12
+	$(CMAKE_COMMAND) -E cmake_progress_start /docker/Yolo-Postprocessing-cpp/build/CMakeFiles 12
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/run_yolo_onnx.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /docker/deepak/Yolo-Postprocessing-cpp/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /docker/Yolo-Postprocessing-cpp/build/CMakeFiles 0
 .PHONY : CMakeFiles/run_yolo_onnx.dir/rule
 
 # Convenience name for target.
@@ -124,14 +124,14 @@ CMakeFiles/run_yolo_onnx.dir/clean:
 ext/spdlog/CMakeFiles/spdlog_headers_for_ide.dir/all:
 	$(MAKE) $(MAKESILENT) -f ext/spdlog/CMakeFiles/spdlog_headers_for_ide.dir/build.make ext/spdlog/CMakeFiles/spdlog_headers_for_ide.dir/depend
 	$(MAKE) $(MAKESILENT) -f ext/spdlog/CMakeFiles/spdlog_headers_for_ide.dir/build.make ext/spdlog/CMakeFiles/spdlog_headers_for_ide.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/docker/deepak/Yolo-Postprocessing-cpp/build/CMakeFiles --progress-num= "Built target spdlog_headers_for_ide"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/docker/Yolo-Postprocessing-cpp/build/CMakeFiles --progress-num= "Built target spdlog_headers_for_ide"
 .PHONY : ext/spdlog/CMakeFiles/spdlog_headers_for_ide.dir/all
 
 # Build rule for subdir invocation for target.
 ext/spdlog/CMakeFiles/spdlog_headers_for_ide.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /docker/deepak/Yolo-Postprocessing-cpp/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /docker/Yolo-Postprocessing-cpp/build/CMakeFiles 0
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 ext/spdlog/CMakeFiles/spdlog_headers_for_ide.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /docker/deepak/Yolo-Postprocessing-cpp/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /docker/Yolo-Postprocessing-cpp/build/CMakeFiles 0
 .PHONY : ext/spdlog/CMakeFiles/spdlog_headers_for_ide.dir/rule
 
 # Convenience name for target.

@@ -1,5 +1,5 @@
 #pragma once
-#include "../models/InferenceEngine.h"
+#include "../../models/InferenceEngine.h"
 #include <onnxruntime_cxx_api.h>
 #include <onnxruntime_c_api.h>
 #include <cuda_provider_options.h>

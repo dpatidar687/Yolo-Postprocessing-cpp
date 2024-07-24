@@ -72,6 +72,7 @@ target_link_libraries(run_yolo_onnx PRIVATE ${ONNX_RUNTIME_LIB} ${OpenCV_LIBS} )
 # target_link_libraries(${PROJECT_NAME} PRIVATE openvino::runtime)
 # target_compile_definitions(${PROJECT_NAME} PRIVATE -DENABLE_VINO)
 
+set(CMAKE_PREFIX_PATH "/opt/intel/openvino/runtime/cmake" ${CMAKE_PREFIX_PATH})
 if(BUILD_WITH_SPDLOG)
 	include(cmake/spdlog.cmake)
 endif(BUILD_WITH_SPDLOG)

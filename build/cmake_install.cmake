@@ -1,4 +1,4 @@
-# Install script for directory: /docker/deepak/Yolo-Postprocessing-cpp
+# Install script for directory: /docker/Yolo-Postprocessing-cpp
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -44,7 +44,7 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("/docker/deepak/Yolo-Postprocessing-cpp/build/ext/spdlog/cmake_install.cmake")
+  include("/docker/Yolo-Postprocessing-cpp/build/ext/spdlog/cmake_install.cmake")
 
 endif()
 
@@ -56,5 +56,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/docker/deepak/Yolo-Postprocessing-cpp/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/docker/Yolo-Postprocessing-cpp/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

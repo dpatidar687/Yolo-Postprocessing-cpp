@@ -4,11 +4,11 @@
 #include <fstream>
 #include <unordered_map>
 #include "NvInfer.h"
-#ifdef ENABLE_TRT
+// #ifdef ENABLE_TRT
 #include <cuda_runtime.h>
 #include <cuda_runtime_api.h>
 #include "NvOnnxParser.h"
-#endif
+// #endif
 
 #include <iostream>
 #include <map>
@@ -18,7 +18,7 @@
 #include <string>
 #include <thread>
 #include <vector>
-#include "../models/InferenceEngine.h"
+#include "../../models/InferenceEngine.h"
 // #include "preprocessor.h"
 // #include "core/queue.h"
 
