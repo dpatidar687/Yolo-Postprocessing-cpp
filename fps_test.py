@@ -4,7 +4,7 @@ import build.run_yolo_onnx
 import numpy as np
 import cv2
 
-
+import build.run_yolo_onnx
 
 
 model_path = "/docker/models/anpr_plate_vehicle_detector.tiny_yolov7/v1/onnx/piyush.best.416.v7.onnx"
@@ -24,17 +24,18 @@ full_image2 = cv2.imread(img_path2)
 
 
 number_of_classes = 7
-batch_size = 4
+batch_size = 2
 v7_object = build.run_yolo_onnx.Yolov7(number_of_classes, anchors, model_path, batch_size, provider, letter_box, letter_box_color)
 conf_thresh = 0.3
 
 
 
 spec = '/docker/models/anpr_plate_vehicle_detector.tiny_yolov7/v1/spec.piyush.final.v7.json'
-provider = 'onnx-openvino-cpu'
-# provider = 'onnx-tensorrt'
+# provider = 'onnx-openvino-cpu'
 # provider = 'onnx-cpu'
-# 
+
+provider = 'onnx-tensorrt'
+# provider = 'onnx-gpu'
 
 model_config = build.run_yolo_onnx.ModelConfig(spec, provider,
                                      batch_size, conf_thresh )
@@ -48,45 +49,60 @@ while True:
     #     batch_list.append(full_image)
     batch_list.append(full_image)
     batch_list.append(full_image2)
-    batch_list.append(full_image)
-    batch_list.append(full_image2)
+    # batch_list.append(full_image)
+    # batch_list.append(full_image2)
     
     
     start_batch_time= time.time()    
     
     preprocessed_img_cpp = yolo_base.preprocess_batch(batch_list) 
     
-    print("pre : ", preprocessed_img_cpp[0], preprocessed_img_cpp[1], preprocessed_img_cpp[2])
+    
+    
     inferenced_output = yolo_base.detect_ov(preprocessed_img_cpp)
+    # # print(inferenced_output)
+    out = []
+    for key in reversed(inferenced_output):
+        print(key , inferenced_output[key].shape)
+        out.append(inferenced_output[key])
+        # print(inferenced_output[key].shape)
+    
+    
+     
     # inferenced_output_v7 = v7_object.detect(preprocessed_img_cpp)
     
-    # print("len of inferenced_output",len(inferenced_output))
+    # for i in inferenced_output_v7:
+    #     print(i[:3])
+    # # print("len of inferenced_output",len(inferenced_output))
     
-    print("inf  : ", inferenced_output[0][0], inferenced_output[0][1], inferenced_output[0][2])
+    # print("inf  : ", inferenced_output[0][0], inferenced_output[0][1], inferenced_output[0][2])
     # print(inferenced_output_v7[0][0], inferenced_output_v7[0][1], inferenced_output_v7[0][2])
     
-    # list_of_boxes = v7_object.postprocess_batch(inferenced_output, conf_thresh , 0.45 , full_image.shape[0] , full_image.shape[1])
+    list_of_boxes = v7_object.postprocess_batch(out, conf_thresh , 0.6 , full_image.shape[0] , full_image.shape[1])
 
     
-    # for k in range(batch_size):
-    #     full = batch_list[k].copy()
+    for k in range(batch_size):
+        full = batch_list[k].copy()
         
-    #     boxes = list_of_boxes[k][0]
-    #     cls = list_of_boxes[k][1]
-    #     score = list_of_boxes[k][2]
-    #     # print(k, len(boxes))
+        boxes = list_of_boxes[k][0]
+        cls = list_of_boxes[k][1]
+        score = list_of_boxes[k][2]
+        # print(k, len(boxes))
         
-    #     for i in range(len(boxes)) :
-    #         x1 = boxes[i][0]
-    #         y1 = boxes[i][1]
-    #         x2 = boxes[i][2]
-    #         y2 = boxes[i][3]
-    #         print(x1, y1, x2, y2, cls[i], score[i])
-    #     #     cv2.rectangle(full, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0,0), 3)
-    #     # cv2.imwrite('/docker/image/openvino'+str(k)+'.jpg', full)
-    # print("overall_time in py file", (time.time() - start_batch_time)*1000)
-    # print("Batch_FPS in py file ", batch_size/(time.time() - start_batch_time))
-    # print("------------------------------------------------------------------------------------")
+        for i in range(len(boxes)) :
+            x1 = boxes[i][0]
+            y1 = boxes[i][1]
+            x2 = boxes[i][2]
+            y2 = boxes[i][3]
+            print(x1, y1, x2, y2, cls[i], score[i])
+        #     cv2.rectangle(full, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0,0), 3)
+        # cv2.imwrite('/docker/image/openvino'+str(k)+'.jpg', full)
+    print("overall_time in py file", (time.time() - start_batch_time)*1000)
+    print("Batch_FPS in py file ", batch_size/(time.time() - start_batch_time))
+    print("------------------------------------------------------------------------------------")
 
     # exit()
 
+# # /model.77/m.2/Conv_output_0 [ 0.52747965 -0.42160907 -0.43888327 -0.7595067   0.06159086]
+# # /model.77/m.1/Conv_output_1 [ 0.37329528 -0.5819995  -0.5670101  -0.34987402 -0.48597363]
+# # /model.77/m.0/Conv_output_2 [ 1.085072   -0.43592775 -1.6875155  -0.25875378 -0.3825836 ]

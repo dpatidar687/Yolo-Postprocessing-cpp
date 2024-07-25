@@ -208,9 +208,10 @@ py::list Yolov7::detect(py::array &input_array)
   for (int i = outputValues.size() - 1; i >= 0; i--)
   {
     float *a = outputValues[i].GetTensorMutableData<float>();
-
+    std::cout <<  " out of yolov7 ort "<< a[0] << "   " <<a[1]  << "  " << a[2] << "  "<< std::endl;
     auto capsule = py::capsule(a, [](void *a)
                                { delete reinterpret_cast<float *>(a); });
+
     auto py_arr = py::array(outputValues[i].GetTensorTypeAndShapeInfo().GetElementCount(), a, capsule);
 
     pylist.attr("append")(py_arr);

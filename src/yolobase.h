@@ -86,5 +86,5 @@ public:
   cv::Mat numpyArrayToMat(py::array_t<uchar> arr);
   float sigmoid(float x) const;
 
-  py::list detect_ov(py::array &input_array);
+  py::dict detect_ov(py::array &input_array);
 };

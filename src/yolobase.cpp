@@ -82,46 +82,54 @@ Yolobase::Yolobase(const mtx::ModelConfig &config)
 }
 
 
-py::list Yolobase::detect_ov(py::array &input_array)
+py::dict Yolobase::detect_ov(py::array &input_array)
 {
 
-  std::cout << "------------------------------------------------------------------" << std::endl;
+  // std::cout << "------------------------------------------------------------------" << std::endl;
 
-  std::cout << "Input_array shape " << input_array.shape(0) << std::endl;
+  // std::cout << "Input_array shape " << input_array.shape(0) << std::endl;
   py::buffer_info buf = input_array.request();
 
   float *ptr = static_cast<float *>(buf.ptr);
   // float *const_ptr = const_cast<float *>(ptr);
 
-  std::cout << "before enqueue" << std::endl;
+  // std::cout << "before enqueue" << std::endl;
   this->yolo_infer->enqueue(ptr);
 
 
-  std::cout << "enqueue done" << std::endl;
+  // std::cout << "enqueue done" << std::endl;
 
   const auto &outputValues = this->yolo_infer->execute_network();
 
-  std::cout << "called the function detect_ov" << std::endl;
-  std::cout << "outputValues.size() " << outputValues.size() << std::endl;
+  // std::cout << "called the function detect_ov" << std::endl;
+  // std::cout << "outputValues.size() " << outputValues.size() << std::endl;
 
-  std::cout << "------------------------------------------------------------------" << std::endl;
-
+  std::cout << "------------------------------------------------------------------" << std::endl; 
   py::list pylist = py::list();
+  py::dict dict;
   for (int i = 0; i < outputValues.size(); i++)
+  // for (int i = outputValues.size() - 1; i >= 0; i--)
   {
     float *a = outputValues[i].data;
+
+    std::cout <<  outputValues[i].name << "  "<< a[0] << "   " <<a[1]  << "  " << a[2] << "  "<< std::endl;
     auto capsule = py::capsule(a, [](void *a)
                                { delete reinterpret_cast<float *>(a); });
 
+    std::cout << "outputValues[i].name : " << outputValues[i].element_count << std::endl;
+
     auto py_arr = py::array(outputValues[i].element_count, a, capsule);
 
-    pylist.attr("append")(py_arr);
+    const std::string name = outputValues[i].name;
+    dict[outputValues[i].name.c_str()] = py_arr;
+
+    // pylist.attr("append")(py_arr);
 
     py_arr.release();
     capsule.release();
   }
 
-  return pylist;
+  return dict;
 }
 
 
@@ -142,7 +150,7 @@ float Yolobase::sigmoid(float x) const
 }
 cv::Mat Yolobase::create_letterbox(const cv::Mat &frame) const
 {
-  std::cout << "using letterboxing be aware this is in yolobase" << std::endl;
+  // std::cout << "using letterboxing be aware this is in yolobase" << std::endl;
   int origW = frame.cols, origH = frame.rows;
   std::vector<float> originImageSize{static_cast<float>(origH), static_cast<float>(origW)};
   float scale = std::min<float>(1.0 * this->IMG_WIDTH / origW, 1.0 * this->IMG_HEIGHT / origH);
