@@ -11,7 +11,7 @@ model_path = "/docker/models/anpr_plate_vehicle_detector.tiny_yolov7/v1/onnx/piy
 letter_box = True
 letter_box_color = [114, 114, 114]
 
-provider='gpu'
+provider='cpu'
 
 anchors = [[116, 90, 156, 198, 373, 326],
          [30, 61, 62, 45, 59, 119],
@@ -24,7 +24,7 @@ full_image2 = cv2.imread(img_path2)
 
 
 number_of_classes = 7
-batch_size = 2
+batch_size = 1
 v7_object = build.run_yolo_onnx.Yolov7(number_of_classes, anchors, model_path, batch_size, provider, letter_box, letter_box_color)
 conf_thresh = 0.3
 
@@ -33,8 +33,8 @@ conf_thresh = 0.3
 spec = '/docker/models/anpr_plate_vehicle_detector.tiny_yolov7/v1/spec.piyush.final.v7.json'
 # provider = 'onnx-openvino-cpu'
 # provider = 'onnx-cpu'
-# provider = 'onnx-tensorrt'
-provider = 'onnx-gpu'
+provider = 'onnx-tensorrt'
+# provider = 'onnx-gpu'
 
 model_config = build.run_yolo_onnx.ModelConfig(spec, provider,
                                      batch_size, conf_thresh )
@@ -42,44 +42,45 @@ model_config = build.run_yolo_onnx.ModelConfig(spec, provider,
 
 yolo_base = build.run_yolo_onnx.Yolobase(model_config)  
 
+
+video_path = "/docker/videos/Gandhinagar_Testing_Jun7/10_sec.mp4"
+video = cv2.VideoCapture(video_path)
+cap = cv2.VideoCapture(video_path)
+
+frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+# Define the codec and create a VideoWriter object
+output_path = '/docker/python_app/tasks/output/make_video.mp4'  # Update with your output video file path
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Define the codec
+out_video = cv2.VideoWriter(output_path, fourcc, 25.0, (frame_width, frame_height))  # Adjust fps if needed
+
+
 while True: 
     batch_list = []
-    # for i in range(batch_size):
-    #     batch_list.append(full_image)
+    ret, full_image = cap.read()
+    if ret == False:
+        break
+    # full_image = cv2.imread(img_path)
+    
     batch_list.append(full_image)
-    batch_list.append(full_image2)
-    # batch_list.append(full_image)
-    # batch_list.append(full_image2)
-    
-    
-    start_batch_time= time.time()    
+      
     
     preprocessed_img_cpp = yolo_base.preprocess_batch(batch_list) 
     
     
     
     inferenced_output = yolo_base.detect_ov(preprocessed_img_cpp)
-    # # print(inferenced_output)
     out = []
     for key in (inferenced_output):
         print(key , inferenced_output[key].shape)
         out.append(inferenced_output[key])
-        # print(inferenced_output[key].shape)
     
-    
-     
-    # inferenced_output_v7 = v7_object.detect(preprocessed_img_cpp)
-    
-    # for i in inferenced_output_v7:
-    #     print(i[:3])
-    # # print("len of inferenced_output",len(inferenced_output))
-    
-    # print("inf  : ", inferenced_output[0][0], inferenced_output[0][1], inferenced_output[0][2])
-    # print(inferenced_output_v7[0][0], inferenced_output_v7[0][1], inferenced_output_v7[0][2])
-    
-    list_of_boxes = v7_object.postprocess_batch(out, conf_thresh , 0.6 , full_image.shape[0] , full_image.shape[1])
+    list_of_boxes = v7_object.postprocess_batch(out, conf_thresh , 0.45 , full_image.shape[0] , full_image.shape[1])
+
 
     
+      
     for k in range(batch_size):
         full = batch_list[k].copy()
         
@@ -94,14 +95,12 @@ while True:
             x2 = boxes[i][2]
             y2 = boxes[i][3]
             print(x1, y1, x2, y2, cls[i], score[i])
-        #     cv2.rectangle(full, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0,0), 3)
+            cv2.rectangle(full, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0,0), 3)
         # cv2.imwrite('/docker/image/openvino'+str(k)+'.jpg', full)
-    print("overall_time in py file", (time.time() - start_batch_time)*1000)
-    print("Batch_FPS in py file ", batch_size/(time.time() - start_batch_time))
+    out_video.write(full)
+    # print("overall_time in py file", (time.time() - start_batch_time)*1000)
+    # print("Batch_FPS in py file ", batch_size/(time.time() - start_batch_time))
     print("------------------------------------------------------------------------------------")
 
-    # exit()
-
-# # /model.77/m.2/Conv_output_0 [ 0.52747965 -0.42160907 -0.43888327 -0.7595067   0.06159086]
-# # /model.77/m.1/Conv_output_1 [ 0.37329528 -0.5819995  -0.5670101  -0.34987402 -0.48597363]
-# # /model.77/m.0/Conv_output_2 [ 1.085072   -0.43592775 -1.6875155  -0.25875378 -0.3825836 ]
+cap.release()
+out_video.release()
