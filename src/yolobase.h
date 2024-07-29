@@ -76,7 +76,7 @@ public:
   ~Yolobase()
   {
     std::cout << "destructor called of Yolobase class " << std::endl;
-    delete[] this->dst;
+    // delete[] this->dst;
   }
   Yolobase(const mtx::ModelConfig &config);
 
@@ -86,5 +86,5 @@ public:
   cv::Mat numpyArrayToMat(py::array_t<uchar> arr);
   float sigmoid(float x) const;
 
-  py::dict detect_ov(py::array &input_array);
+  py::dict infer_cpp(py::array &input_array);
 };

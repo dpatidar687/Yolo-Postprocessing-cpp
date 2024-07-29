@@ -35,7 +35,7 @@ public:
     ~Base_classifier();
 
    
-    py::list infer(py::array &input_array);
+    py::list infer_cpp(py::array &input_array);
 
 private:
     private:

@@ -530,8 +530,8 @@ namespace mtx
                     // Need more testing
                     // CHECK_CUDA_ERROR(cudaStreamWaitEvent(*InferCudaStream, *waitEvent, 0));
 
-                    std::cout << "Transfering in the cpu" << std::endl;
-                    std::cout << "current batch size in tensorrt .cpp " << CURR_BATCH_SIZE << std::endl;
+                    // std::cout << "Transfering in the cpu" << std::endl;
+                    // std::cout << "current batch size in tensorrt .cpp " << CURR_BATCH_SIZE << std::endl;
                     CHECK_CUDA_ERROR(cudaMemcpyAsync(ip_tensor.buffer, src + curr_pos,
                                                      CURR_BATCH_SIZE * ip_tensor.size * sizeof(float),
                                                      cudaMemcpyHostToDevice, *PreprocessCudaStream));

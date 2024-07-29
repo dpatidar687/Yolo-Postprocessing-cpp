@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 set(CMAKE_CXX_STANDARD 17)
-project(run_yolo_onnx C CXX)
+project(Yolo_Infer_CPP C CXX)
 
 
 
@@ -42,9 +42,9 @@ file(GLOB HEADER_FILES "src/*.h"
 )
 
 
-pybind11_add_module(run_yolo_onnx ${SOURCE_FILES} ${HEADER_FILES})
+pybind11_add_module(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
 
-target_include_directories(run_yolo_onnx PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src 
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src 
     ${CMAKE_CURRENT_SOURCE_DIR}/models
     ${CMAKE_CURRENT_SOURCE_DIR}/accelerators/OpenVINO
     ${CMAKE_CURRENT_SOURCE_DIR}/accelerators/TensorRT
@@ -63,7 +63,7 @@ message("lib : ${ONNX_RUNTIME_LIB}")
 
 include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${ONNX_RUNTIME_SESSION_INCLUDE_DIRS} ${ONNX_RUNTIME_PROVIDERS_INCLUDE_DIRS})
 include_directories(${PROJECT_NAME} /usr/local/include/onnxruntime)
-target_link_libraries(run_yolo_onnx PRIVATE ${ONNX_RUNTIME_LIB} ${OpenCV_LIBS} )  
+target_link_libraries(${PROJECT_NAME} PRIVATE ${ONNX_RUNTIME_LIB} ${OpenCV_LIBS} )  
 
 
 
@@ -91,3 +91,7 @@ if(BUILD_WITH_CUDA)
     target_compile_definitions(${PROJECT_NAME} PRIVATE -DENABLE_CUDA)
     target_link_libraries(${PROJECT_NAME} PUBLIC -L/usr/local/cuda/lib64)
 endif(BUILD_WITH_CUDA)
+
+
+# set_target_properties(Yolo_Infer_CPP PROPERTIES OUTPUT_NAME "Yolo_Infer_CPP")
+# target_link_libraries(Yolo_Infer_CPP PUBLIC ${PYTHON_LIBRARIES})

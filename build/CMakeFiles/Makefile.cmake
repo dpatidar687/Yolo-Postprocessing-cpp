@@ -173,6 +173,6 @@ set(CMAKE_MAKEFILE_PRODUCTS
 
 # Dependency information for all targets:
 set(CMAKE_DEPEND_INFO_FILES
-  "CMakeFiles/run_yolo_onnx.dir/DependInfo.cmake"
+  "CMakeFiles/Yolo_Infer_CPP.dir/DependInfo.cmake"
   "ext/spdlog/CMakeFiles/spdlog_headers_for_ide.dir/DependInfo.cmake"
   )

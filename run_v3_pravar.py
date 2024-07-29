@@ -1,7 +1,7 @@
 
 import time
 import os
-import build.run_yolo_onnx
+import build.Yolo_Infer_CPP
 
 import numpy as np
 import cv2
@@ -10,7 +10,7 @@ import ctypes
 
 if __name__ == '__main__':
 
-    model_path = "/docker/deepak/models/yolo_tiny_25_07.onnx"
+    model_path = "/docker/models/yolo_tiny_25_07.onnx"
     img_folder_path = './pravar_data/input_images/'
 
     batch_size = 1
@@ -22,7 +22,7 @@ if __name__ == '__main__':
     anchors = [[81, 82, 135, 169, 344, 319],
             [10, 14, 23, 27, 37, 58]]
 
-    v3_object = build.run_yolo_onnx.Yolov3(number_of_classes, anchors, model_path, batch_size, provider)
+    v3_object = build.Yolo_Infer_CPP.Yolov3(number_of_classes, anchors, model_path, batch_size, provider)
 
     for file in os.listdir(img_folder_path):
         print(file)

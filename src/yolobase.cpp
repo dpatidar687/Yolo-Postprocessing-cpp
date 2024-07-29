@@ -82,7 +82,7 @@ Yolobase::Yolobase(const mtx::ModelConfig &config)
 }
 
 
-py::dict Yolobase::detect_ov(py::array &input_array)
+py::dict Yolobase::infer_cpp(py::array &input_array)
 {
 
   // std::cout << "------------------------------------------------------------------" << std::endl;
@@ -112,13 +112,13 @@ py::dict Yolobase::detect_ov(py::array &input_array)
   {
     float *a = outputValues[i].data;
 
-    std::cout <<  outputValues[i].name << "  "<< a[0] << "   " <<a[1]  << "  " << a[2] << "  "<< std::endl;
-    auto capsule = py::capsule(a, [](void *a)
+    // std::cout <<"cpp : " << outputValues[i].name << " : "<< "  "<< a[0] << "   " <<a[1]  << "  " << a[2] << "  "<< a[3] << "  "<< a[4] << "  "<< std::endl;
+    auto infer_capsule = py::capsule(a, [](void *a)
                                { delete reinterpret_cast<float *>(a); });
 
-    std::cout << "outputValues[i].name : " << outputValues[i].element_count << std::endl;
+    // std::cout << "outputValues[i].name : " << outputValues[i].element_count << std::endl;
 
-    auto py_arr = py::array(outputValues[i].element_count, a, capsule);
+    auto py_arr = py::array(outputValues[i].element_count, a, infer_capsule);
 
     const std::string name = outputValues[i].name;
     dict[outputValues[i].name.c_str()] = py_arr;
@@ -126,7 +126,7 @@ py::dict Yolobase::detect_ov(py::array &input_array)
     // pylist.attr("append")(py_arr);
 
     py_arr.release();
-    capsule.release();
+    infer_capsule.release();
   }
 
   return dict;
@@ -188,7 +188,7 @@ py::array Yolobase::preprocess_batch(py::list &batch)
 
   // }
     std::vector<cv::Mat> batch_cpp;
-    std::cout << batch.size() << std::endl;
+    // std::cout << batch.size() << std::endl;
     for (int64_t b = 0; b < batch.size(); ++b)
     {
       py::array_t<uchar> np_array = batch[b].cast<py::array_t<uchar>>();
@@ -202,12 +202,12 @@ py::array Yolobase::preprocess_batch(py::list &batch)
 
     batch_cpp.clear();
 
-  auto capsule = py::capsule(dst, [](void *dst)
+  auto pre_capsule = py::capsule(dst, [](void *dst)
                              { delete reinterpret_cast<float *>(dst); });
 
-  std::cout << this->BATCH_SIZE << this->IMG_CHANNEL << this->IMG_WIDTH << this->IMG_HEIGHT << std::endl;
-  py::array img_array = py::array(this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_WIDTH * this->IMG_HEIGHT, dst, capsule);
-  capsule.release();
+  // std::cout << this->BATCH_SIZE << this->IMG_CHANNEL << this->IMG_WIDTH << this->IMG_HEIGHT << std::endl;
+  py::array img_array = py::array(this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_WIDTH * this->IMG_HEIGHT, dst, pre_capsule);
+  pre_capsule.release();
   return img_array;
 }
 

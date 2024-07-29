@@ -78,7 +78,7 @@ Base_classifier::~Base_classifier()
     // Destructor cleanup if necessary
 }
 
-py::list Base_classifier::infer(py::array &input_array)
+py::list Base_classifier::infer_cpp(py::array &input_array)
 {
     py::buffer_info buf = input_array.request();
 

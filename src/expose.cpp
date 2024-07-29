@@ -5,7 +5,7 @@
 #include <../models/model_config.h>
 #include <yolobase.h>
 
-PYBIND11_MODULE(run_yolo_onnx, m)
+PYBIND11_MODULE(Yolo_Infer_CPP, m)
 {
     py::class_<Yolov3>(m, "Yolov3")
         .def(py::init<int, std::vector<std::vector<float> >, const std::string &,
@@ -39,7 +39,7 @@ PYBIND11_MODULE(run_yolo_onnx, m)
     
     py::class_<Base_classifier>(m, "Base_classifier")
     .def(py::init<const std::string &, int , const std::string >())
-    .def("infer", &Base_classifier::infer);
+    .def("infer_cpp", &Base_classifier::infer_cpp), py::return_value_policy::reference;
 
 
     py::class_<mtx::ModelConfig>(m, "ModelConfig")
@@ -48,7 +48,7 @@ PYBIND11_MODULE(run_yolo_onnx, m)
     py::class_<Yolobase>(m, "Yolobase")
         .def(py::init<const mtx::ModelConfig&>(), py::arg("config"))
         .def("preprocess_batch", &Yolobase::preprocess_batch, py::return_value_policy::reference)
-        .def("detect_ov", &Yolobase::detect_ov, py::return_value_policy::reference);
+        .def("infer_cpp", &Yolobase::infer_cpp, py::return_value_policy::reference);
         
 
 }

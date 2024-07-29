@@ -118,10 +118,10 @@ public:
                                const float confidenceThresh, const float nms_threshold,
                                const int64_t input_image_height, const int64_t input_image_width);
 
-    // ~Yolov7()
-    // {
-    //     delete session_;
-    //     delete[] this->dst;
-    // };
+    ~Yolov7()
+    {
+        delete session_;
+        delete[] this->dst;
+    };
 };
 

@@ -236,8 +236,8 @@ namespace mtx
 		int64_t elem_count = this->ov_input_tensors.begin()->second.element_count;
 		// #pragma omp parallel for
 
-		std::cout << "Batch size: " << this->BATCH_SIZE << std::endl;
-		std::cout << "Curr batch size: " << this->CURR_BATCH_SIZE << std::endl;
+		// std::cout << "Batch size: " << this->BATCH_SIZE << std::endl;
+		// std::cout << "Curr batch size: " << this->CURR_BATCH_SIZE << std::endl;
 
 		for (int i = 0; i < this->BATCH_SIZE; i++)
 		{
@@ -252,7 +252,7 @@ namespace mtx
 			this->_in_queue[i] = true;
 		}
 
-		std::cout << "Length of infer_pool: " << this->infer_pool.size() << std::endl;
+		// std::cout << "Length of infer_pool: " << this->infer_pool.size() << std::endl;
 	}
 
 	std::vector<tensor_details> OpenVINOInferenceEngine::execute_network()
@@ -265,7 +265,7 @@ namespace mtx
 				this->infer_pool[i].wait();
 				for (auto &tensor_name : this->ov_output_tensors)
 				{
-					std::cout << "Output name: " << tensor_name.first << std::endl;
+					// std::cout << "Output name: " << tensor_name.first << std::endl;
 					ov::Tensor output = infer_pool[i].get_tensor(tensor_name.first);
 					auto *raw_tensor = this->tensor_raw_data[tensor_name.first].data;
 					auto *tensor_data = const_cast<float *>(output.data<const float>());
@@ -278,9 +278,9 @@ namespace mtx
 
 		for (auto &tensor_name : this->ov_output_tensors)
 		{
-			std::cout << "Output name: " << tensor_name.first << std::endl;
-			std::cout << "batch size: " << this->BATCH_SIZE << std::endl;
-			std::cout << "current batch size: " << this->CURR_BATCH_SIZE << std::endl;
+			// std::cout << "Output name: " << tensor_name.first << std::endl;
+			// std::cout << "batch size: " << this->BATCH_SIZE << std::endl;
+			// std::cout << "current batch size: " << this->CURR_BATCH_SIZE << std::endl;
 
 			auto opt_tensor = this->tensor_raw_data[tensor_name.first];
 			opt_tensor.shape[0] = this->BATCH_SIZE;

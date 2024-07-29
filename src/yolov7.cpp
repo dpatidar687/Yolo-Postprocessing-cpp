@@ -183,7 +183,7 @@ py::list Yolov7::detect(py::array &input_array)
   py::buffer_info buf = input_array.request();
 
   float *ptr = static_cast<float *>(buf.ptr);
-  // float *const_ptr = const_cast<float *>(ptr);
+  float *const_ptr = const_cast<float *>(ptr);
   // auto start = std::chrono::high_resolution_clock::now();
 
   std::cout << "------------------------------------------------------------------" << std::endl;
@@ -191,7 +191,7 @@ py::list Yolov7::detect(py::array &input_array)
   std::cout << "Input_array shape " << input_array.shape(0) << std::endl;
 
   auto inputOnnxTensor = Ort::Value::CreateTensor<float>(this->info,
-                                                         const_cast<float *>(ptr), this->inputTensorSize,
+                                                         const_ptr, this->inputTensorSize,
                                                          this->inputShape.data(), this->inputShape.size());
   auto outputValues = session_->Run(this->runOptions,
                                     names_of_inputs_cstr,
@@ -206,6 +206,7 @@ py::list Yolov7::detect(py::array &input_array)
 
   py::list pylist = py::list();
   for (int i = outputValues.size() - 1; i >= 0; i--)
+  // for (int i = 0; i < outputValues.size(); i++)
   {
     float *a = outputValues[i].GetTensorMutableData<float>();
     std::cout <<  " out of yolov7 ort "<< a[0] << "   " <<a[1]  << "  " << a[2] << "  "<< std::endl;
@@ -214,6 +215,11 @@ py::list Yolov7::detect(py::array &input_array)
 
     auto py_arr = py::array(outputValues[i].GetTensorTypeAndShapeInfo().GetElementCount(), a, capsule);
 
+    std::cout << outputValues[i].GetTensorTypeAndShapeInfo().GetShape()[2] << std::endl;
+    std::cout << outputValues[i].GetTensorTypeAndShapeInfo().GetElementType() << std::endl;
+    std::cout << session_->GetOutputNameAllocated(i, allocator_).get() << std::endl;
+    std::cout << outputValues[i].GetTensorTypeAndShapeInfo().GetElementCount() << std::endl;
+    
     pylist.attr("append")(py_arr);
     py_arr.release();
     capsule.release();

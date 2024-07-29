@@ -213,8 +213,8 @@ namespace mtx
 
         for (auto &[name, details] : this->input_tensors_details)
         {
-            std::cout << "Enqueuing input tensor: " << name << std::endl;
-            std::cout << "\t" << details.element_count << std::endl;
+            // std::cout << "Enqueuing input tensor: " << name << std::endl;
+            // std::cout << "\t" << details.element_count << std::endl;
             this->input_tensor.push_back(
                 Ort::Value::CreateTensor<float>(
                     this->memoryInfo,

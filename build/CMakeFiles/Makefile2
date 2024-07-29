@@ -63,7 +63,7 @@ CMAKE_BINARY_DIR = /docker/Yolo-Postprocessing-cpp/build
 # Directory level rules for the build root directory
 
 # The main recursive "all" target.
-all: CMakeFiles/run_yolo_onnx.dir/all
+all: CMakeFiles/Yolo_Infer_CPP.dir/all
 all: ext/spdlog/all
 .PHONY : all
 
@@ -72,7 +72,7 @@ preinstall: ext/spdlog/preinstall
 .PHONY : preinstall
 
 # The main recursive "clean" target.
-clean: CMakeFiles/run_yolo_onnx.dir/clean
+clean: CMakeFiles/Yolo_Infer_CPP.dir/clean
 clean: ext/spdlog/clean
 .PHONY : clean
 
@@ -92,30 +92,30 @@ ext/spdlog/clean: ext/spdlog/CMakeFiles/spdlog_headers_for_ide.dir/clean
 .PHONY : ext/spdlog/clean
 
 #=============================================================================
-# Target rules for target CMakeFiles/run_yolo_onnx.dir
+# Target rules for target CMakeFiles/Yolo_Infer_CPP.dir
 
 # All Build rule for target.
-CMakeFiles/run_yolo_onnx.dir/all:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/run_yolo_onnx.dir/build.make CMakeFiles/run_yolo_onnx.dir/depend
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/run_yolo_onnx.dir/build.make CMakeFiles/run_yolo_onnx.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/docker/Yolo-Postprocessing-cpp/build/CMakeFiles --progress-num=1,2,3,4,5,6,7,8,9,10,11,12 "Built target run_yolo_onnx"
-.PHONY : CMakeFiles/run_yolo_onnx.dir/all
+CMakeFiles/Yolo_Infer_CPP.dir/all:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Yolo_Infer_CPP.dir/build.make CMakeFiles/Yolo_Infer_CPP.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Yolo_Infer_CPP.dir/build.make CMakeFiles/Yolo_Infer_CPP.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/docker/Yolo-Postprocessing-cpp/build/CMakeFiles --progress-num=1,2,3,4,5,6,7,8,9,10,11,12 "Built target Yolo_Infer_CPP"
+.PHONY : CMakeFiles/Yolo_Infer_CPP.dir/all
 
 # Build rule for subdir invocation for target.
-CMakeFiles/run_yolo_onnx.dir/rule: cmake_check_build_system
+CMakeFiles/Yolo_Infer_CPP.dir/rule: cmake_check_build_system
 	$(CMAKE_COMMAND) -E cmake_progress_start /docker/Yolo-Postprocessing-cpp/build/CMakeFiles 12
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/run_yolo_onnx.dir/all
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/Yolo_Infer_CPP.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /docker/Yolo-Postprocessing-cpp/build/CMakeFiles 0
-.PHONY : CMakeFiles/run_yolo_onnx.dir/rule
+.PHONY : CMakeFiles/Yolo_Infer_CPP.dir/rule
 
 # Convenience name for target.
-run_yolo_onnx: CMakeFiles/run_yolo_onnx.dir/rule
-.PHONY : run_yolo_onnx
+Yolo_Infer_CPP: CMakeFiles/Yolo_Infer_CPP.dir/rule
+.PHONY : Yolo_Infer_CPP
 
 # clean rule for target.
-CMakeFiles/run_yolo_onnx.dir/clean:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/run_yolo_onnx.dir/build.make CMakeFiles/run_yolo_onnx.dir/clean
-.PHONY : CMakeFiles/run_yolo_onnx.dir/clean
+CMakeFiles/Yolo_Infer_CPP.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Yolo_Infer_CPP.dir/build.make CMakeFiles/Yolo_Infer_CPP.dir/clean
+.PHONY : CMakeFiles/Yolo_Infer_CPP.dir/clean
 
 #=============================================================================
 # Target rules for target ext/spdlog/CMakeFiles/spdlog_headers_for_ide.dir
