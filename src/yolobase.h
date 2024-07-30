@@ -87,4 +87,5 @@ public:
   float sigmoid(float x) const;
 
   py::dict infer_cpp(py::array &input_array);
+  py::dict infer_trt_ort(py::array &input_array);
 };

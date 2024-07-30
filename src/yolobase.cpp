@@ -21,7 +21,6 @@ Yolobase::Yolobase(const mtx::ModelConfig &config)
   this->dst = new float[this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_WIDTH *
                         this->IMG_HEIGHT];
 
-
   //  ###############################################################################################
   this->model_path = config.get_model_path();
   this->gpu_idx = 0; // hardcode GPU index as it always starts from 0 at runtime
@@ -54,16 +53,16 @@ Yolobase::Yolobase(const mtx::ModelConfig &config)
     std::cout << "Using OpenVINO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
 
     this->yolo_infer = std::make_unique<mtx::OpenVINOInferenceEngine>(this->model_path, this->provider,
-                                                                      std::vector<std::vector<long int>>{{this->batch_size, this->model_input_shape[2], 
-                                                                          this->model_input_shape[0], this->model_input_shape[1]}},
+                                                                      std::vector<std::vector<long int>>{{this->batch_size, this->model_input_shape[2],
+                                                                                                          this->model_input_shape[0], this->model_input_shape[1]}},
                                                                       output_shape, this->PREPROCESS_INFO);
   }
   else if (this->provider == "onnx-gpu" || this->provider == "onnx-cpu")
   {
     std::cout << "Using ONNX Runtime !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
     this->yolo_infer = std::make_unique<mtx::ORTInferenceEngine>(this->model_path, this->provider, gpuIdx,
-                                                                 std::vector<std::vector<long int>>{{this->batch_size, this->model_input_shape[2], 
-                                                                      this->model_input_shape[0], this->model_input_shape[1]}},
+                                                                 std::vector<std::vector<long int>>{{this->batch_size, this->model_input_shape[2],
+                                                                                                     this->model_input_shape[0], this->model_input_shape[1]}},
                                                                  output_shape, this->PREPROCESS_INFO);
     this->async = false;
   }
@@ -72,8 +71,8 @@ Yolobase::Yolobase(const mtx::ModelConfig &config)
     std::cout << "Using TensorRT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
     this->yolo_infer = std::make_unique<mtx::TRTInferenceEngine>(this->model_path, this->provider,
                                                                  std::vector<std::vector<long int>>{{this->batch_size, this->model_input_shape[2],
-                                                                   this->model_input_shape[0], this->model_input_shape[1]}}, 
-                                                                   output_shape, this->PREPROCESS_INFO, false);
+                                                                                                     this->model_input_shape[0], this->model_input_shape[1]}},
+                                                                 output_shape, this->PREPROCESS_INFO, false);
   }
   else
   {
@@ -81,13 +80,37 @@ Yolobase::Yolobase(const mtx::ModelConfig &config)
   }
 }
 
+py::dict Yolobase::infer_trt_ort(py::array &input_array)
+{
+  py::buffer_info buf = input_array.request();
+  float *ptr = static_cast<float *>(buf.ptr);
+  this->yolo_infer->enqueue(ptr);
+  std::cout << "-----------------enqueued------------------" << std::endl;
+  const auto &outputValues = this->yolo_infer->execute_network();
+  py::dict dict;
 
+  for (const auto &outputValue : outputValues)
+  {
+
+    auto infer_capsule = py::capsule(outputValue.data, [](void *a)
+                                     {
+                                       delete reinterpret_cast<float *>(a); // Assuming the array was allocated with new[]
+                                     });
+
+    py::array py_arr(py::dtype::of<float>(), outputValue.element_count, outputValue.data, infer_capsule);
+    dict[outputValue.name.c_str()] = py_arr;
+   
+
+    //  dict[outputValue.name.c_str()] = py::array(outputValue.element_count, outputValue.data);
+
+    py_arr.release();
+    // infer_capsule.release();
+  }
+  return dict;
+}
 py::dict Yolobase::infer_cpp(py::array &input_array)
 {
 
-  // std::cout << "------------------------------------------------------------------" << std::endl;
-
-  // std::cout << "Input_array shape " << input_array.shape(0) << std::endl;
   py::buffer_info buf = input_array.request();
 
   float *ptr = static_cast<float *>(buf.ptr);
@@ -96,25 +119,18 @@ py::dict Yolobase::infer_cpp(py::array &input_array)
   // std::cout << "before enqueue" << std::endl;
   this->yolo_infer->enqueue(ptr);
 
-
-  // std::cout << "enqueue done" << std::endl;
-
   const auto &outputValues = this->yolo_infer->execute_network();
 
-  // std::cout << "called the function detect_ov" << std::endl;
-  // std::cout << "outputValues.size() " << outputValues.size() << std::endl;
-
-  std::cout << "------------------------------------------------------------------" << std::endl; 
-  py::list pylist = py::list();
+  std::cout << "------------------------------------------------------------------" << std::endl;
   py::dict dict;
+
   for (int i = 0; i < outputValues.size(); i++)
   // for (int i = outputValues.size() - 1; i >= 0; i--)
   {
     float *a = outputValues[i].data;
 
-    // std::cout <<"cpp : " << outputValues[i].name << " : "<< "  "<< a[0] << "   " <<a[1]  << "  " << a[2] << "  "<< a[3] << "  "<< a[4] << "  "<< std::endl;
     auto infer_capsule = py::capsule(a, [](void *a)
-                               { delete reinterpret_cast<float *>(a); });
+                                     { delete[] reinterpret_cast<float *>(a); });
 
     // std::cout << "outputValues[i].name : " << outputValues[i].element_count << std::endl;
 
@@ -129,9 +145,9 @@ py::dict Yolobase::infer_cpp(py::array &input_array)
     infer_capsule.release();
   }
 
+  // dict[outputValues[i].name.c_str()] = py::array(outputValues[i].element_count, outputValues[i].data);
   return dict;
 }
-
 
 cv::Mat Yolobase::numpyArrayToMat(py::array_t<uchar> arr)
 {
@@ -187,23 +203,22 @@ py::array Yolobase::preprocess_batch(py::list &batch)
   //   }
 
   // }
-    std::vector<cv::Mat> batch_cpp;
-    // std::cout << batch.size() << std::endl;
-    for (int64_t b = 0; b < batch.size(); ++b)
-    {
-      py::array_t<uchar> np_array = batch[b].cast<py::array_t<uchar>>();
-      cv::Mat img = numpyArrayToMat(np_array);
+  std::vector<cv::Mat> batch_cpp;
+  // std::cout << batch.size() << std::endl;
+  for (int64_t b = 0; b < batch.size(); ++b)
+  {
+    py::array_t<uchar> np_array = batch[b].cast<py::array_t<uchar>>();
+    cv::Mat img = numpyArrayToMat(np_array);
 
-      batch_cpp.push_back(img);
-    }
+    batch_cpp.push_back(img);
+  }
 
+  this->dst = this->yolo_infer->preprocess_batch(batch_cpp);
 
-    this->dst = this->yolo_infer->preprocess_batch(batch_cpp);
-
-    batch_cpp.clear();
+  batch_cpp.clear();
 
   auto pre_capsule = py::capsule(dst, [](void *dst)
-                             { delete reinterpret_cast<float *>(dst); });
+                                 { delete reinterpret_cast<float *>(dst); });
 
   // std::cout << this->BATCH_SIZE << this->IMG_CHANNEL << this->IMG_WIDTH << this->IMG_HEIGHT << std::endl;
   py::array img_array = py::array(this->BATCH_SIZE * this->IMG_CHANNEL * this->IMG_WIDTH * this->IMG_HEIGHT, dst, pre_capsule);

@@ -33,10 +33,10 @@ conf_thresh = 0.3
 
 
 spec = '/docker/models/anpr_plate_vehicle_detector.tiny_yolov7/v1/spec.piyush.final.v7.json'
-# provider = 'onnx-openvino-cpu'
+provider = 'onnx-openvino-cpu'
 # provider = 'onnx-cpu'
 # provider = 'onnx-tensorrt'
-provider = 'onnx-gpu'
+# provider = 'onnx-gpu'
 
 model_config = build.Yolo_Infer_CPP.ModelConfig(spec, provider,
                                      batch_size, conf_thresh )
@@ -49,6 +49,10 @@ while True:
     # for i in range(batch_size):
     batch_list.append(full_image)
     # batch_list.append(full_image)
+    # batch_list.append(full_image)
+    # batch_list.append(full_image)
+    # batch_list.append(full_image)
+    # batch_list.append(full_image)
     # batch_list.append(full_image2)
     # batch_list.append(full_image)
     # batch_list.append(full_image2)
@@ -60,7 +64,9 @@ while True:
     
     
     
-    inferenced_output = yolo_base.infer_cpp(preprocessed_img_cpp)
+    # inferenced_output = yolo_base.infer_cpp(preprocessed_img_cpp)
+    inferenced_output = yolo_base.infer_trt_ort(preprocessed_img_cpp)
+
     # # print(inferenced_output)
     out = []
     for key in (inferenced_output):
@@ -83,7 +89,8 @@ while True:
         cls = list_of_boxes[k][1]
         score = list_of_boxes[k][2]
         print(k, len(boxes))
-        
+        if(len(boxes) != 3):
+            print("error", len(boxes))
         for i in range(len(boxes)) :
             x1 = boxes[i][0]
             y1 = boxes[i][1]
@@ -94,6 +101,7 @@ while True:
         # cv2.imwrite('/docker/image/openvino'+str(k)+'.jpg', full)
     print("overall_time in py file", (time.time() - start_batch_time)*1000)
     print("Batch_FPS in py file ", batch_size/(time.time() - start_batch_time))
+    print("FPS", batch_size/(time.time() - start_batch_time))
     print("------------------------------------------------------------------------------------")
 
     # exit()

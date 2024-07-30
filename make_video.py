@@ -11,7 +11,7 @@ model_path = "/docker/models/anpr_plate_vehicle_detector.tiny_yolov7/v1/onnx/piy
 letter_box = True
 letter_box_color = [114, 114, 114]
 
-provider='cpu'
+provider='gpu'
 
 anchors = [[116, 90, 156, 198, 373, 326],
          [30, 61, 62, 45, 59, 119],
@@ -43,7 +43,6 @@ yolo_base = build.Yolo_Infer_CPP.Yolobase(model_config)
 
 
 video_path = "/docker/videos/Gandhinagar_Testing_Jun7/10_sec.mp4"
-video = cv2.VideoCapture(video_path)
 cap = cv2.VideoCapture(video_path)
 
 frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -55,6 +54,7 @@ fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Define the codec
 out_video = cv2.VideoWriter(output_path, fourcc, 25.0, (frame_width, frame_height))  # Adjust fps if needed
 
 count = 0
+
 while True: 
     batch_list = []
     ret, full_image = cap.read()
@@ -75,9 +75,11 @@ while True:
     # print(inferenced_output)
     out = []
     for key in reversed(inferenced_output):
-        print(key , inferenced_output[key].shape)
+        print(key , inferenced_output[key])
         out.append(inferenced_output[key])
     
+    del inferenced_output
+    # out = v7_object.detect(preprocessed_img_cpp)
     list_of_boxes = v7_object.postprocess_batch(out, conf_thresh , 0.45 , full_image.shape[0] , full_image.shape[1])
 
 
@@ -98,14 +100,17 @@ while True:
             y2 = boxes[i][3]
             print(x1, y1, x2, y2, cls[i], score[i])
             
-            cv2.rectangle(full, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0,0), 3)
+            # cv2.rectangle(full, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0,0), 3)
         # cv2.imwrite('/docker/image/openvino'+str(k)+'.jpg', full)
-    out_video.write(full)
+    # out_video.write(full)
     # print("overall_time in py file", (time.time() - start_batch_time)*1000)
     # print("Batch_FPS in py file ", batch_size/(time.time() - start_batch_time))
     print("------------------------------------------------------------------------------------")
+    time.sleep(1)
     
-    print(count)
+    print("no of detection in the video ",count)
 
+    
+    
 cap.release()
 out_video.release()

@@ -48,7 +48,8 @@ PYBIND11_MODULE(Yolo_Infer_CPP, m)
     py::class_<Yolobase>(m, "Yolobase")
         .def(py::init<const mtx::ModelConfig&>(), py::arg("config"))
         .def("preprocess_batch", &Yolobase::preprocess_batch, py::return_value_policy::reference)
-        .def("infer_cpp", &Yolobase::infer_cpp, py::return_value_policy::reference);
+        .def("infer_cpp", &Yolobase::infer_cpp, py::return_value_policy::reference)
+        .def("infer_trt_ort", &Yolobase::infer_trt_ort, py::return_value_policy::reference);
         
 
 }

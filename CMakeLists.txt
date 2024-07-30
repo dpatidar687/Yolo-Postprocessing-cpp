@@ -92,6 +92,3 @@ if(BUILD_WITH_CUDA)
     target_link_libraries(${PROJECT_NAME} PUBLIC -L/usr/local/cuda/lib64)
 endif(BUILD_WITH_CUDA)
 
-
-# set_target_properties(Yolo_Infer_CPP PROPERTIES OUTPUT_NAME "Yolo_Infer_CPP")
-# target_link_libraries(Yolo_Infer_CPP PUBLIC ${PYTHON_LIBRARIES})

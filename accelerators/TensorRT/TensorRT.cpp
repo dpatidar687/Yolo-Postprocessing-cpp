@@ -545,9 +545,9 @@ namespace mtx
                 // If used internal impl, no need for waiting as the data is already allocated to the memory
                 // Adding wait and copy if src and ip_tensor.buffer are not same
                 // Event if there is any copy is taking place, it is extremely fast (~10 microseconds for batch of 5 frames of 3x640x480 data)
-                std::cout << "Tensor on GPU!! and transfering in the cpu" << std::endl;
-                std::cout << "current batch size in tensorrt .cpp " << CURR_BATCH_SIZE << std::endl;
-                std::cout << CURR_BATCH_SIZE * ip_tensor.size << std::endl;
+                // std::cout << "Tensor on GPU!! and transfering in the cpu" << std::endl;
+                // std::cout << "current batch size in tensorrt .cpp " << CURR_BATCH_SIZE << std::endl;
+                // std::cout << CURR_BATCH_SIZE * ip_tensor.size << std::endl;
                 if (ip_tensor.buffer != src + curr_pos)
                 {
                     if (ip_tensor.isConsumed)
